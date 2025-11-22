@@ -129,7 +129,7 @@
 
 **验收场景**:
 
-1. **Given** 包已发布到 PyPI，**When** 执行 `pip install web-perf-monitor`，**Then** 安装成功且无依赖冲突
+1. **Given** 包已发布到 PyPI，**When** 执行 `pip install web-perfmonitor`，**Then** 安装成功且无依赖冲突
 2. **Given** 包已安装，**When** 在 Python 中导入，**Then** 可以正常导入并使用中间件和装饰器
 
 ---

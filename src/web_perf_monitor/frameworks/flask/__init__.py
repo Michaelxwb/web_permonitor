@@ -1,4 +1,4 @@
-"""Flask framework integration for web-perf-monitor.
+"""Flask framework integration for web-perfmonitor.
 
 This module provides Flask-specific implementations for performance monitoring.
 

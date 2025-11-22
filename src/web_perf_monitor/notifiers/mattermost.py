@@ -86,7 +86,7 @@ class MattermostNotifier(BaseNotifier):
             except ImportError as e:
                 raise NotificationError(
                     "mattermostdriver is not installed. "
-                    "Install it with: pip install web-perf-monitor[mattermost]"
+                    "Install it with: pip install web-perfmonitor[mattermost]"
                 ) from e
 
             # Parse server URL

@@ -6,12 +6,12 @@
 ## 安装
 
 ```bash
-pip install web-perf-monitor
+pip install web-perfmonitor
 ```
 
 如需 Mattermost 通知支持：
 ```bash
-pip install web-perf-monitor[mattermost]
+pip install web-perfmonitor[mattermost]
 ```
 
 ## 最简集成（3 行代码）

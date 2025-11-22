@@ -612,7 +612,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "web-perf-monitor"
+name = "web-perfmonitor"
 version = "0.1.0"
 description = "Zero-intrusion performance monitoring for Python web frameworks"
 requires-python = ">=3.8"

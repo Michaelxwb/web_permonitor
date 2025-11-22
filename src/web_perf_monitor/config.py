@@ -1,4 +1,4 @@
-"""Configuration management for web-perf-monitor.
+"""Configuration management for web-perfmonitor.
 
 This module provides the MonitorConfig dataclass for configuring
 the performance monitoring system.

@@ -1,7 +1,7 @@
 """Profiler wrapper for pyinstrument integration.
 
 This module provides a wrapper around pyinstrument's Profiler class
-with additional convenience methods for the web-perf-monitor system.
+with additional convenience methods for the web-perfmonitor system.
 """
 
 import logging

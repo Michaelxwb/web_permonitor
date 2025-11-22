@@ -1,4 +1,4 @@
-"""Data models for web-perf-monitor.
+"""Data models for web-perfmonitor.
 
 This module defines the core data structures used throughout the package,
 including PerformanceProfile, AlertRecord, TaskStatus, and NotificationTask.

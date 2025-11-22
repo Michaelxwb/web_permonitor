@@ -1,13 +1,13 @@
 """Web Performance Monitor exceptions.
 
-This module defines all custom exceptions used throughout the web-perf-monitor package.
+This module defines all custom exceptions used throughout the web-perfmonitor package.
 """
 
 from typing import Optional
 
 
 class WebPerfMonitorError(Exception):
-    """Base exception for all web-perf-monitor errors.
+    """Base exception for all web-perfmonitor errors.
 
     All custom exceptions in this package inherit from this class,
     allowing users to catch all package-specific errors with a single except clause.

@@ -1,10 +1,10 @@
-"""Flask demo application for web-perf-monitor.
+"""Flask demo application for web-perfmonitor.
 
-This example demonstrates the basic usage of web-perf-monitor
+This example demonstrates the basic usage of web-perfmonitor
 with a Flask application.
 
 Usage:
-    pip install flask web-perf-monitor
+    pip install flask web-perfmonitor
     python flask_demo.py
 
 Then visit:

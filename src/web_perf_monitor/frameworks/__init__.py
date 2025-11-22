@@ -1,4 +1,4 @@
-"""Framework integrations for web-perf-monitor.
+"""Framework integrations for web-perfmonitor.
 
 This module provides automatic framework discovery and registration.
 When imported, it registers all available framework adapters with

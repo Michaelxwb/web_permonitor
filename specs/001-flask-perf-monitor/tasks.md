@@ -26,7 +26,7 @@
 **目的**: 项目初始化和基础结构搭建
 
 - [x] T001 按照 plan.md 在 src/web_perf_monitor/ 创建项目目录结构
-- [x] T002 初始化 Python 项目 pyproject.toml（包名: web-perf-monitor, Python 3.8+）
+- [x] T002 初始化 Python 项目 pyproject.toml（包名: web-perfmonitor, Python 3.8+）
 - [x] T003 [P] 配置依赖: Flask>=2.0.0, pyinstrument>=4.0.0, mattermostdriver>=7.0.0（可选）
 - [x] T004 [P] 创建 src/web_perf_monitor/py.typed 类型提示标记文件
 - [x] T005 [P] 在 pyproject.toml 中配置 ruff 代码检查
@@ -188,7 +188,7 @@
 
 ## 阶段 9: 用户故事 7 - PyPI 包安装 (优先级: P7)
 
-**目标**: 可通过 pip install web-perf-monitor 安装包
+**目标**: 可通过 pip install web-perfmonitor 安装包
 
 **独立测试**: 构建包，在干净的虚拟环境中安装，导入并验证功能
 
