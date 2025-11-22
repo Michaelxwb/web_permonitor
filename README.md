@@ -85,7 +85,9 @@ PerformanceMiddleware(app, config=config)
 
 **Note:** Local report saving is automatic and mandatory. Reports are always saved to `log_path` in both HTML and Markdown formats.
 
-The `notice_list` is only for **external notifiers** (Mattermost, Slack, etc.):
+The `notice_list` is only for **external notifiers** (Mattermost, Email, Slack, etc.).
+
+**Zip Attachment:** All external notifiers automatically attach a zip file containing both HTML and Markdown reports for convenient offline viewing and archiving.
 
 ### Mattermost Notifications
 
@@ -104,6 +106,43 @@ config = MonitorConfig(
     ]
 )
 ```
+
+### Email Notifications
+
+```python
+config = MonitorConfig(
+    log_path="/var/log/perf-reports",
+    notice_list=[
+        {
+            "type": "email",
+            "format": "html",  # or "text"
+            "smtp_host": "smtp.example.com",
+            "smtp_port": 587,
+            "username": "alerts@example.com",
+            "password": "your-password",
+            "sender": "alerts@example.com",
+            "recipients": ["dev@example.com", "ops@example.com"],
+            "use_tls": True,
+            "subject_prefix": "[Perf Alert]"
+        }
+    ]
+)
+```
+
+**Email Configuration Options:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| smtp_host | str | - | SMTP server hostname (required) |
+| smtp_port | int | 587 | SMTP server port |
+| username | str | - | SMTP authentication username |
+| password | str | - | SMTP authentication password |
+| sender | str | - | Sender email address (required) |
+| recipients | List[str] | - | Recipient email addresses (required) |
+| use_tls | bool | True | Use STARTTLS encryption |
+| use_ssl | bool | False | Use SSL/TLS from connection start |
+| format | str | "html" | Email format ("html" or "text") |
+| subject_prefix | str | "[Performance Alert]" | Email subject prefix |
 
 ## Function-Level Profiling
 

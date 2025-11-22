@@ -273,7 +273,14 @@ class NotificationExecutor:
             return None
 
         # Create unique key for this config
-        config_key = f"{notifier_type}:{hash(frozenset(config.items()))}"
+        # Convert lists to tuples for hashing
+        def make_hashable(v):
+            if isinstance(v, list):
+                return tuple(v)
+            return v
+
+        hashable_items = tuple((k, make_hashable(v)) for k, v in sorted(config.items()))
+        config_key = f"{notifier_type}:{hash(hashable_items)}"
 
         if config_key not in self._notifiers:
             try:

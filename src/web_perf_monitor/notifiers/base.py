@@ -4,9 +4,12 @@ This module defines the abstract base class for notification implementations
 (local file, Mattermost, etc.).
 """
 
+import io
 import logging
+import re
+import zipfile
 from abc import ABC, abstractmethod
-from typing import Any, Dict, TYPE_CHECKING
+from typing import Any, Dict, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..models import PerformanceProfile
@@ -215,3 +218,230 @@ class BaseNotifier(ABC):
         lines.append(profile.text_report)
 
         return "\n".join(lines)
+
+    def generate_zip_report(
+        self,
+        profile: "PerformanceProfile",
+    ) -> Tuple[bytes, str]:
+        """Generate a zip file containing HTML and Markdown reports.
+
+        Creates a zip archive with both the HTML and Markdown versions
+        of the performance report for attachment to external notifications.
+
+        Args:
+            profile: The performance profile.
+
+        Returns:
+            Tuple of (zip_bytes, filename) where zip_bytes is the zip file
+            content as bytes and filename is the suggested filename.
+        """
+        # Generate filename base
+        filename_base = self._generate_report_filename(profile)
+
+        # Create zip in memory
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            # Add markdown report
+            markdown_content = self._format_markdown(profile)
+            zf.writestr(f"{filename_base}.md", markdown_content.encode("utf-8"))
+
+            # Add HTML report
+            html_content = self._generate_html_report(profile)
+            zf.writestr(f"{filename_base}.html", html_content.encode("utf-8"))
+
+        zip_bytes = zip_buffer.getvalue()
+        zip_filename = f"{filename_base}.zip"
+
+        logger.debug(f"Generated zip report: {zip_filename} ({len(zip_bytes)} bytes)")
+        return zip_bytes, zip_filename
+
+    def _generate_report_filename(self, profile: "PerformanceProfile") -> str:
+        """Generate a base filename for reports.
+
+        Args:
+            profile: The performance profile.
+
+        Returns:
+            Base filename without extension.
+        """
+        # Strip HTTP method prefix from endpoint
+        endpoint = profile.endpoint
+        http_methods = ("GET ", "POST ", "PUT ", "DELETE ", "PATCH ", "HEAD ", "OPTIONS ")
+        for method in http_methods:
+            if endpoint.startswith(method):
+                endpoint = endpoint[len(method):]
+                break
+
+        # Sanitize endpoint for filename
+        sanitized = re.sub(r"[/\\?%*:|\"<>]", "_", endpoint)
+        sanitized = re.sub(r"_+", "_", sanitized)
+        sanitized = sanitized.strip("_")
+        if len(sanitized) > 50:
+            sanitized = sanitized[:50]
+        sanitized = sanitized or "unknown"
+
+        # Use short ID
+        short_id = profile.id[:8]
+
+        return f"perf_report_{sanitized}_{short_id}"
+
+    def _generate_html_report(self, profile: "PerformanceProfile") -> str:
+        """Generate full HTML report.
+
+        Args:
+            profile: The performance profile.
+
+        Returns:
+            HTML content string.
+        """
+        import html
+        import json
+
+        # Build request params section
+        params_html = ""
+        if profile.metadata:
+            query_params = profile.metadata.get("query_params")
+            form_data = profile.metadata.get("form_data")
+            json_body = profile.metadata.get("json_body")
+
+            if query_params or form_data or json_body:
+                params_html = "<h3>Request Parameters</h3>"
+
+                if query_params:
+                    params_html += f"""
+                    <p><strong>Query Parameters:</strong></p>
+                    <pre style="background:#f5f5f5;padding:10px;border-radius:4px;">{html.escape(json.dumps(query_params, indent=2, ensure_ascii=False))}</pre>
+                    """
+
+                if form_data:
+                    params_html += f"""
+                    <p><strong>Form Data:</strong></p>
+                    <pre style="background:#f5f5f5;padding:10px;border-radius:4px;">{html.escape(json.dumps(form_data, indent=2, ensure_ascii=False))}</pre>
+                    """
+
+                if json_body:
+                    params_html += f"""
+                    <p><strong>JSON Body:</strong></p>
+                    <pre style="background:#f5f5f5;padding:10px;border-radius:4px;">{html.escape(json.dumps(json_body, indent=2, ensure_ascii=False))}</pre>
+                    """
+
+        # Build metadata section
+        metadata_html = ""
+        if profile.metadata:
+            exclude_keys = {"query_params", "form_data", "json_body", "query_string"}
+            other_metadata = {
+                k: v for k, v in profile.metadata.items() if k not in exclude_keys
+            }
+            if other_metadata:
+                metadata_html = "<h3>Request Information</h3><ul>"
+                for key, value in other_metadata.items():
+                    metadata_html += f"<li><strong>{html.escape(str(key))}:</strong> {html.escape(str(value))}</li>"
+                metadata_html += "</ul>"
+
+        # Use pyinstrument HTML if available
+        profile_section = ""
+        if profile.html_report:
+            profile_section = profile.html_report
+        else:
+            profile_section = f"<pre>{html.escape(profile.text_report)}</pre>"
+
+        return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Performance Report: {html.escape(profile.endpoint)}</title>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }}
+        .alert-header {{
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }}
+        .alert-header h1 {{
+            margin: 0;
+            font-size: 24px;
+        }}
+        .info-table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }}
+        .info-table th, .info-table td {{
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }}
+        .info-table th {{
+            background-color: #f8f9fa;
+            font-weight: 600;
+            width: 150px;
+        }}
+        .duration {{
+            font-size: 28px;
+            font-weight: bold;
+            color: #dc3545;
+        }}
+        pre {{
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.4;
+        }}
+        h3 {{
+            color: #495057;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 8px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="alert-header">
+        <h1>Performance Alert</h1>
+    </div>
+
+    <table class="info-table">
+        <tr>
+            <th>Endpoint</th>
+            <td><code>{html.escape(profile.endpoint)}</code></td>
+        </tr>
+        <tr>
+            <th>Method</th>
+            <td>{html.escape(profile.method)}</td>
+        </tr>
+        <tr>
+            <th>Duration</th>
+            <td><span class="duration">{profile.duration_seconds:.3f}s</span></td>
+        </tr>
+        <tr>
+            <th>Timestamp</th>
+            <td>{profile.timestamp.isoformat()}</td>
+        </tr>
+        <tr>
+            <th>Profile ID</th>
+            <td><code>{profile.id}</code></td>
+        </tr>
+    </table>
+
+    {params_html}
+    {metadata_html}
+
+    <h3>Performance Profile</h3>
+    {profile_section}
+
+    <hr style="border:none;border-top:1px solid #eee;margin:30px 0;">
+    <p style="color:#999;font-size:12px;">
+        Generated by Web Performance Monitor
+    </p>
+</body>
+</html>"""

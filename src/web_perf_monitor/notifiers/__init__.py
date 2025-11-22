@@ -141,3 +141,8 @@ __all__ = [
     "is_registered",
     "get_notifier_class",
 ]
+
+# Import notifiers to trigger registration
+from . import local  # noqa: F401
+from . import mattermost  # noqa: F401
+from . import email  # noqa: F401

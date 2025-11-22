@@ -119,7 +119,7 @@ class MattermostNotifier(BaseNotifier):
         profile: "PerformanceProfile",
         format: Optional[str] = None,
     ) -> None:
-        """Send performance alert to Mattermost channel.
+        """Send performance alert to Mattermost channel with zip attachment.
 
         Args:
             profile: The performance profile to send.
@@ -132,20 +132,34 @@ class MattermostNotifier(BaseNotifier):
         actual_format = format or self.format
 
         try:
-            # Format message
-            message = self.format_message(profile, actual_format)
+            # Format message (brief summary for channel)
+            message = self._format_brief_message(profile)
 
-            # Send to channel
+            # Generate zip report
+            zip_bytes, zip_filename = self.generate_zip_report(profile)
+
+            # Upload file first
+            file_response = self.driver.files.upload_file(
+                channel_id=self.channel_id,
+                files={
+                    "files": (zip_filename, zip_bytes, "application/zip")
+                }
+            )
+
+            file_ids = [f["id"] for f in file_response.get("file_infos", [])]
+
+            # Send message with file attachment
             self.driver.posts.create_post(
                 {
                     "channel_id": self.channel_id,
                     "message": message,
+                    "file_ids": file_ids,
                 }
             )
 
             logger.info(
                 f"Sent performance alert to Mattermost channel {self.channel_id}: "
-                f"{profile.endpoint}"
+                f"{profile.endpoint} (with zip attachment)"
             )
 
         except NotificationError:
@@ -155,6 +169,25 @@ class MattermostNotifier(BaseNotifier):
             error_msg = f"Failed to send Mattermost notification: {e}"
             logger.error(error_msg, exc_info=True)
             raise NotificationError(error_msg) from e
+
+    def _format_brief_message(self, profile: "PerformanceProfile") -> str:
+        """Format a brief message for the channel post.
+
+        Args:
+            profile: The performance profile.
+
+        Returns:
+            Brief markdown message.
+        """
+        return (
+            f"### :warning: Performance Alert: `{profile.endpoint}`\n\n"
+            f"| Field | Value |\n"
+            f"|-------|-------|\n"
+            f"| **Method** | {profile.method} |\n"
+            f"| **Duration** | {profile.duration_seconds:.3f}s |\n"
+            f"| **Timestamp** | {profile.timestamp.isoformat()} |\n\n"
+            f"See attached zip file for detailed HTML and Markdown reports."
+        )
 
     def validate_config(self) -> bool:
         """Validate the notifier configuration.

@@ -36,9 +36,23 @@ config = MonitorConfig(
     alert_window_days=1,  # Short window for demo
     log_path="/tmp/perf-demo",  # Reports are always saved here (mandatory)
     url_blacklist=["/health", "/favicon.ico"],  # Exclude these URLs
-    # notice_list is for EXTERNAL notifiers only (Mattermost, Slack, etc.)
+    # notice_list is for EXTERNAL notifiers only (Mattermost, Email, Slack, etc.)
     # Local report saving is automatic and mandatory
     notice_list=[
+        # 163 Email notification
+        {
+            "type": "email",
+            "format": "html",
+            "smtp_host": "smtp.163.com",
+            "smtp_port": 465,
+            "username": "example@163.com",
+            "password": "xxxxxxxx",
+            "sender": "example@163.com",
+            "recipients": ["example@163.com"],
+            "use_ssl": True,
+            "use_tls": False,
+            "subject_prefix": "[性能告警]"
+        }
         # Uncomment to enable Mattermost notifications:
         # {
         #     "type": "mattermost",
@@ -65,6 +79,12 @@ def slow():
     """Slow endpoint - will trigger performance alert."""
     time.sleep(0.2)  # 200ms delay
     return jsonify({"message": "This was slow", "status": "slow"})
+
+@app.route("/slow2")
+def slow2():
+    """Slow endpoint - will trigger performance alert."""
+    time.sleep(1.0)  # 200ms delay
+    return jsonify({"message": "This was slow2", "status": "slow2"})
 
 
 @app.route("/api/users")

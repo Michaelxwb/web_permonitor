@@ -85,7 +85,9 @@ PerformanceMiddleware(app, config=config)
 
 **注意：** 本地报告保存是自动且强制的。报告始终会以 HTML 和 Markdown 格式保存至 `log_path`。
 
-`notice_list` 仅用于配置**外部通知器**（Mattermost、Slack 等）：
+`notice_list` 仅用于配置**外部通知器**（Mattermost、Email、Slack 等）。
+
+**Zip 附件：** 所有外部通知器会自动附加一个包含 HTML 和 Markdown 报告的 zip 压缩包，便于离线查看和存档。
 
 ### Mattermost 通知
 
@@ -104,6 +106,43 @@ config = MonitorConfig(
     ]
 )
 ```
+
+### Email 邮件通知
+
+```python
+config = MonitorConfig(
+    log_path="/var/log/perf-reports",
+    notice_list=[
+        {
+            "type": "email",
+            "format": "html",  # 或 "text"
+            "smtp_host": "smtp.example.com",
+            "smtp_port": 587,
+            "username": "alerts@example.com",
+            "password": "your-password",
+            "sender": "alerts@example.com",
+            "recipients": ["dev@example.com", "ops@example.com"],
+            "use_tls": True,
+            "subject_prefix": "[性能告警]"
+        }
+    ]
+)
+```
+
+**邮件配置参数：**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| smtp_host | str | - | SMTP 服务器地址（必填） |
+| smtp_port | int | 587 | SMTP 服务器端口 |
+| username | str | - | SMTP 认证用户名 |
+| password | str | - | SMTP 认证密码 |
+| sender | str | - | 发件人邮箱地址（必填） |
+| recipients | List[str] | - | 收件人邮箱地址列表（必填） |
+| use_tls | bool | True | 使用 STARTTLS 加密 |
+| use_ssl | bool | False | 从连接开始使用 SSL/TLS |
+| format | str | "html" | 邮件格式（"html" 或 "text"） |
+| subject_prefix | str | "[Performance Alert]" | 邮件主题前缀 |
 
 ## 函数级性能分析
 
