@@ -14,12 +14,17 @@ A lightweight performance monitoring library for Python web frameworks based on 
 - **Multiple notification channels** - Local files, Mattermost, and extensible for custom channels
 - **URL filtering** - Whitelist/blacklist patterns to control what gets monitored
 - **Async notifications** - Non-blocking notification delivery
-- **Framework extensible** - Currently supports Flask, designed for easy extension to Django, FastAPI, etc.
+- **Multi-framework support** - Supports Flask and FastAPI with async/await, extensible for Django, etc.
 
 ## Installation
 
 ```bash
 pip install web-perfmonitor
+```
+
+For FastAPI support:
+```bash
+pip install web-perfmonitor[fastapi]
 ```
 
 For Mattermost notification support:
@@ -29,7 +34,7 @@ pip install web-perfmonitor[mattermost]
 
 ## Quick Start
 
-### Minimal Setup (3 Lines of Code)
+### Flask (Minimal Setup)
 
 ```python
 from flask import Flask
@@ -47,10 +52,30 @@ if __name__ == "__main__":
     app.run()
 ```
 
+### FastAPI (Async Support)
+
+```python
+from fastapi import FastAPI
+from web_perfmonitor import PerformanceMiddleware
+
+app = FastAPI()
+PerformanceMiddleware(app)  # Auto-detects FastAPI
+
+@app.get("/api/users")
+async def get_users():
+    # Your async business logic
+    return {"users": [...]}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
 **What happens:**
 - All endpoints are automatically monitored
 - Performance reports are generated when response time exceeds 1 second
 - Reports are saved to `/tmp` directory
+- For FastAPI, async functions are profiled correctly with full call stack
 
 ### Custom Configuration
 
@@ -237,7 +262,7 @@ class DjangoAdapter(BaseAdapter):
 ## Requirements
 
 - Python 3.8+
-- Flask 2.0+
+- Flask 2.0+ or FastAPI 0.100+
 - pyinstrument 4.0+
 
 ## License

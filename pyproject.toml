@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "web-perfmonitor"
-version = "0.1.0"
+version = "0.2.0"
 description = "Zero-intrusion performance monitoring for Python web frameworks"
 readme = "README.md"
 license = {text = "MIT"}
@@ -24,21 +24,27 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Framework :: Flask",
+    "Framework :: FastAPI",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: System :: Monitoring",
 ]
-keywords = ["performance", "monitoring", "flask", "profiling", "pyinstrument"]
+keywords = ["performance", "monitoring", "flask", "fastapi", "profiling", "pyinstrument"]
 dependencies = [
     "Flask>=2.0.0",
     "pyinstrument>=4.0.0",
 ]
 
 [project.optional-dependencies]
+fastapi = [
+    "fastapi>=0.100.0",
+    "starlette>=0.27.0",
+]
 mattermost = ["mattermostdriver>=7.0.0"]
 dev = [
     "pytest>=7.0.0",
     "pytest-flask>=1.2.0",
     "pytest-asyncio>=0.21.0",
+    "httpx>=0.24.0",
     "mypy>=1.0.0",
     "ruff>=0.1.0",
     "build>=1.0.0",
@@ -89,6 +95,8 @@ module = [
     "pyinstrument.*",
     "mattermostdriver.*",
     "flask.*",
+    "fastapi.*",
+    "starlette.*",
 ]
 ignore_missing_imports = true
 

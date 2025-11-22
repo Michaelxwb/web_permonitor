@@ -14,12 +14,17 @@
 - **多通知渠道** - 支持本地文件、Mattermost，可扩展自定义渠道
 - **URL 过滤** - 支持白名单/黑名单模式控制监控范围
 - **异步通知** - 非阻塞式通知发送
-- **框架可扩展** - 目前支持 Flask，易于扩展至 Django、FastAPI 等
+- **多框架支持** - 支持 Flask 和 FastAPI（包括 async/await），可扩展至 Django 等
 
 ## 安装
 
 ```bash
 pip install web-perfmonitor
+```
+
+如需 FastAPI 支持：
+```bash
+pip install web-perfmonitor[fastapi]
 ```
 
 如需 Mattermost 通知支持：
@@ -29,7 +34,7 @@ pip install web-perfmonitor[mattermost]
 
 ## 快速开始
 
-### 最小化配置（仅需 3 行代码）
+### Flask（最小化配置）
 
 ```python
 from flask import Flask
@@ -47,10 +52,30 @@ if __name__ == "__main__":
     app.run()
 ```
 
+### FastAPI（异步支持）
+
+```python
+from fastapi import FastAPI
+from web_perfmonitor import PerformanceMiddleware
+
+app = FastAPI()
+PerformanceMiddleware(app)  # 自动检测 FastAPI
+
+@app.get("/api/users")
+async def get_users():
+    # 你的异步业务逻辑
+    return {"users": [...]}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
 **效果说明：**
 - 所有接口自动被监控
 - 当响应时间超过 1 秒时生成性能报告
 - 报告保存至 `/tmp` 目录
+- 对于 FastAPI，异步函数的调用栈可被完整采集
 
 ### 自定义配置
 
@@ -237,7 +262,7 @@ class DjangoAdapter(BaseAdapter):
 ## 环境要求
 
 - Python 3.8+
-- Flask 2.0+
+- Flask 2.0+ 或 FastAPI 0.100+
 - pyinstrument 4.0+
 
 ## 许可证

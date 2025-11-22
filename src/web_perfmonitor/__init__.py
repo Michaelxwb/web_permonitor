@@ -1,14 +1,21 @@
 """Web Performance Monitor - A performance monitoring library for Python web frameworks.
 
 This package provides automatic performance monitoring and alerting for web
-applications. Currently supports Flask, with extensibility for other frameworks.
+applications. Supports Flask and FastAPI, with extensibility for other frameworks.
 
-Quick Start:
+Quick Start (Flask):
     from flask import Flask
     from web_perfmonitor import PerformanceMiddleware
 
     app = Flask(__name__)
     PerformanceMiddleware(app)  # That's it!
+
+Quick Start (FastAPI):
+    from fastapi import FastAPI
+    from web_perfmonitor import PerformanceMiddleware
+
+    app = FastAPI()
+    PerformanceMiddleware(app)  # Auto-detects FastAPI
 
 Full Configuration:
     from web_perfmonitor import PerformanceMiddleware, MonitorConfig

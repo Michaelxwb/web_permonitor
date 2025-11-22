@@ -6,6 +6,7 @@ the FrameworkRegistry.
 
 Supported Frameworks:
     - Flask: Full support for request profiling and decorators
+    - FastAPI: Full support for async request profiling and decorators
 
 Example:
     # Importing this module registers all adapters
@@ -38,6 +39,19 @@ def _discover_flask() -> bool:
         return False
 
 
+def _discover_fastapi() -> bool:
+    """Attempt to discover and register FastAPI adapter."""
+    try:
+        from . import fastapi  # noqa: F401
+
+        _discovered_frameworks.append("fastapi")
+        logger.debug("Discovered FastAPI framework adapter")
+        return True
+    except ImportError:
+        logger.debug("FastAPI not available, skipping adapter registration")
+        return False
+
+
 def discover_frameworks() -> List[str]:
     """Discover and register all available framework adapters.
 
@@ -48,9 +62,7 @@ def discover_frameworks() -> List[str]:
 
     if not _discovered_frameworks:
         _discover_flask()
-        # Add more framework discovery here as needed
-        # _discover_django()
-        # _discover_fastapi()
+        _discover_fastapi()
 
     return _discovered_frameworks.copy()
 
