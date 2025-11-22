@@ -25,7 +25,7 @@ class FlaskProfileDecorator(BaseDecorator):
     information (request path, method, user agent) is captured.
 
     Example:
-        from web_perf_monitor import profile
+        from web_perfmonitor import profile
 
         @profile()
         def slow_function():

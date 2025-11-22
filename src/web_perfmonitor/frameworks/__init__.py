@@ -9,10 +9,10 @@ Supported Frameworks:
 
 Example:
     # Importing this module registers all adapters
-    from web_perf_monitor import frameworks
+    from web_perfmonitor import frameworks
 
     # Or just import the main package, which does this automatically
-    from web_perf_monitor import PerformanceMiddleware
+    from web_perfmonitor import PerformanceMiddleware
 """
 
 import logging

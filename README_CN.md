@@ -33,7 +33,7 @@ pip install web-perfmonitor[mattermost]
 
 ```python
 from flask import Flask
-from web_perf_monitor import PerformanceMiddleware
+from web_perfmonitor import PerformanceMiddleware
 
 app = Flask(__name__)
 PerformanceMiddleware(app)  # 就这么简单！
@@ -55,7 +55,7 @@ if __name__ == "__main__":
 ### 自定义配置
 
 ```python
-from web_perf_monitor import PerformanceMiddleware, MonitorConfig
+from web_perfmonitor import PerformanceMiddleware, MonitorConfig
 
 config = MonitorConfig(
     threshold_seconds=0.5,      # 500ms 阈值
@@ -147,7 +147,7 @@ config = MonitorConfig(
 ## 函数级性能分析
 
 ```python
-from web_perf_monitor import profile
+from web_perfmonitor import profile
 
 @profile()
 def slow_operation():
@@ -207,7 +207,7 @@ config = MonitorConfig(
 ### 自定义通知器
 
 ```python
-from web_perf_monitor.notifiers import BaseNotifier, register_notifier
+from web_perfmonitor.notifiers import BaseNotifier, register_notifier
 
 @register_notifier("slack")
 class SlackNotifier(BaseNotifier):
@@ -226,7 +226,7 @@ class SlackNotifier(BaseNotifier):
 ### 自定义框架适配器
 
 ```python
-from web_perf_monitor.core import FrameworkRegistry, BaseAdapter
+from web_perfmonitor.core import FrameworkRegistry, BaseAdapter
 
 @FrameworkRegistry.register("django")
 class DjangoAdapter(BaseAdapter):

@@ -8,7 +8,7 @@
 ### 模块入口
 
 ```python
-from web_perf_monitor import (
+from web_perfmonitor import (
     # 核心组件
     PerformanceMiddleware,
     profile,
@@ -22,7 +22,7 @@ from web_perf_monitor import (
 )
 
 # 框架扩展接口（用于实现新框架支持）
-from web_perf_monitor.core import (
+from web_perfmonitor.core import (
     FrameworkRegistry,
     BaseAdapter,
     BaseMiddleware,
@@ -30,7 +30,7 @@ from web_perf_monitor.core import (
 )
 
 # 通知器扩展接口
-from web_perf_monitor.notifiers import (
+from web_perfmonitor.notifiers import (
     BaseNotifier,
     register_notifier,
 )
@@ -243,7 +243,7 @@ class PerformanceProfile:
 用于注册和管理框架适配器。
 
 ```python
-from web_perf_monitor.core import FrameworkRegistry, BaseAdapter
+from web_perfmonitor.core import FrameworkRegistry, BaseAdapter
 
 class FrameworkRegistry:
     @classmethod
@@ -509,7 +509,7 @@ class FlaskProfileDecorator(BaseDecorator):
 用于实现自定义通知渠道。
 
 ```python
-from web_perf_monitor.notifiers import BaseNotifier, register_notifier
+from web_perfmonitor.notifiers import BaseNotifier, register_notifier
 
 class BaseNotifier(ABC):
     @abstractmethod
@@ -557,7 +557,7 @@ class SlackNotifier(BaseNotifier):
 ## 8. 异常类型
 
 ```python
-from web_perf_monitor.exceptions import (
+from web_perfmonitor.exceptions import (
     WebPerfMonitorError,         # 基础异常
     ConfigurationError,          # 配置错误
     NotificationError,           # 通知发送失败
@@ -573,7 +573,7 @@ from web_perf_monitor.exceptions import (
 
 ```python
 from flask import Flask
-from web_perf_monitor import PerformanceMiddleware
+from web_perfmonitor import PerformanceMiddleware
 
 app = Flask(__name__)
 PerformanceMiddleware(app)  # 使用默认配置
@@ -583,7 +583,7 @@ PerformanceMiddleware(app)  # 使用默认配置
 
 ```python
 from flask import Flask
-from web_perf_monitor import PerformanceMiddleware, MonitorConfig
+from web_perfmonitor import PerformanceMiddleware, MonitorConfig
 
 app = Flask(__name__)
 
@@ -613,7 +613,7 @@ PerformanceMiddleware(app, config=config)
 ### 装饰器模式
 
 ```python
-from web_perf_monitor import profile
+from web_perfmonitor import profile
 
 @profile()
 def process_data(data):
@@ -636,7 +636,7 @@ export PERF_URL_WHITELIST="/api/*,/v1/*"
 ```
 
 ```python
-from web_perf_monitor import PerformanceMiddleware, MonitorConfig
+from web_perfmonitor import PerformanceMiddleware, MonitorConfig
 
 app = Flask(__name__)
 config = MonitorConfig.from_env()
@@ -646,7 +646,7 @@ PerformanceMiddleware(app, config=config)
 ### 扩展新框架（以 Django 为例）
 
 ```python
-from web_perf_monitor.core import (
+from web_perfmonitor.core import (
     FrameworkRegistry,
     BaseAdapter,
     BaseMiddleware,

@@ -33,8 +33,8 @@ class FlaskMiddleware(BaseMiddleware):
 
     Example:
         from flask import Flask
-        from web_perf_monitor import MonitorConfig
-        from web_perf_monitor.frameworks.flask import FlaskMiddleware
+        from web_perfmonitor import MonitorConfig
+        from web_perfmonitor.frameworks.flask import FlaskMiddleware
 
         app = Flask(__name__)
         config = MonitorConfig(threshold_seconds=0.5)

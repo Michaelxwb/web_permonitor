@@ -25,7 +25,7 @@ logging.basicConfig(
 )
 
 # Import the monitor
-from web_perf_monitor import MonitorConfig, PerformanceMiddleware, profile
+from web_perfmonitor import MonitorConfig, PerformanceMiddleware, profile
 
 # Create Flask app
 app = Flask(__name__)

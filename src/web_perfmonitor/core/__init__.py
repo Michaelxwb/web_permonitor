@@ -11,7 +11,7 @@ Public API:
 
 Example:
     # Implementing support for a new framework
-    from web_perf_monitor.core import (
+    from web_perfmonitor.core import (
         FrameworkRegistry,
         BaseAdapter,
         BaseMiddleware,

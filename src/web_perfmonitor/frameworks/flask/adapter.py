@@ -28,7 +28,7 @@ class FlaskAdapter(BaseAdapter["Flask", "LocalProxy", "Response"]):
     and can be used for auto-detection of Flask applications.
 
     Example:
-        from web_perf_monitor import PerformanceMiddleware
+        from web_perfmonitor import PerformanceMiddleware
 
         app = Flask(__name__)
         # Auto-detection will use FlaskAdapter

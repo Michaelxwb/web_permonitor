@@ -18,7 +18,7 @@ pip install web-perfmonitor[mattermost]
 
 ```python
 from flask import Flask
-from web_perf_monitor import PerformanceMiddleware
+from web_perfmonitor import PerformanceMiddleware
 
 app = Flask(__name__)
 PerformanceMiddleware(app)  # 就这么简单！
@@ -42,7 +42,7 @@ if __name__ == "__main__":
 ### 方式 1：代码配置
 
 ```python
-from web_perf_monitor import PerformanceMiddleware, MonitorConfig
+from web_perfmonitor import PerformanceMiddleware, MonitorConfig
 
 config = MonitorConfig(
     threshold_seconds=0.5,      # 500ms 阈值
@@ -64,7 +64,7 @@ export PERF_URL_WHITELIST="/api/*"
 ```
 
 ```python
-from web_perf_monitor import PerformanceMiddleware, MonitorConfig
+from web_perfmonitor import PerformanceMiddleware, MonitorConfig
 
 config = MonitorConfig.from_env()
 PerformanceMiddleware(app, config=config)
@@ -99,7 +99,7 @@ PerformanceMiddleware(app, config=config)
 ## 装饰器模式（监控特定函数）
 
 ```python
-from web_perf_monitor import profile
+from web_perfmonitor import profile
 
 @profile()
 def slow_operation():
@@ -145,7 +145,7 @@ config = MonitorConfig(
 
 ```python
 from flask import Flask
-from web_perf_monitor import PerformanceMiddleware
+from web_perfmonitor import PerformanceMiddleware
 import time
 
 app = Flask(__name__)

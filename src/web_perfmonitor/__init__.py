@@ -5,13 +5,13 @@ applications. Currently supports Flask, with extensibility for other frameworks.
 
 Quick Start:
     from flask import Flask
-    from web_perf_monitor import PerformanceMiddleware
+    from web_perfmonitor import PerformanceMiddleware
 
     app = Flask(__name__)
     PerformanceMiddleware(app)  # That's it!
 
 Full Configuration:
-    from web_perf_monitor import PerformanceMiddleware, MonitorConfig
+    from web_perfmonitor import PerformanceMiddleware, MonitorConfig
 
     config = MonitorConfig(
         threshold_seconds=0.5,
@@ -28,7 +28,7 @@ Full Configuration:
     PerformanceMiddleware(app, config=config)
 
 Function-Level Profiling:
-    from web_perf_monitor import profile
+    from web_perfmonitor import profile
 
     @profile()
     def slow_function():
@@ -75,13 +75,13 @@ class PerformanceMiddleware:
     Example:
         # Minimal setup
         from flask import Flask
-        from web_perf_monitor import PerformanceMiddleware
+        from web_perfmonitor import PerformanceMiddleware
 
         app = Flask(__name__)
         PerformanceMiddleware(app)
 
         # With configuration
-        from web_perf_monitor import PerformanceMiddleware, MonitorConfig
+        from web_perfmonitor import PerformanceMiddleware, MonitorConfig
 
         config = MonitorConfig(threshold_seconds=0.5)
         PerformanceMiddleware(app, config=config)

@@ -16,7 +16,7 @@
 ## 路径约定
 
 基于 plan.md 项目结构：
-- 源码: `src/web_perf_monitor/`
+- 源码: `src/web_perfmonitor/`
 - 测试: `tests/`
 
 ---
@@ -25,10 +25,10 @@
 
 **目的**: 项目初始化和基础结构搭建
 
-- [x] T001 按照 plan.md 在 src/web_perf_monitor/ 创建项目目录结构
+- [x] T001 按照 plan.md 在 src/web_perfmonitor/ 创建项目目录结构
 - [x] T002 初始化 Python 项目 pyproject.toml（包名: web-perfmonitor, Python 3.8+）
 - [x] T003 [P] 配置依赖: Flask>=2.0.0, pyinstrument>=4.0.0, mattermostdriver>=7.0.0（可选）
-- [x] T004 [P] 创建 src/web_perf_monitor/py.typed 类型提示标记文件
+- [x] T004 [P] 创建 src/web_perfmonitor/py.typed 类型提示标记文件
 - [x] T005 [P] 在 pyproject.toml 中配置 ruff 代码检查
 - [x] T006 [P] 在 pyproject.toml 中配置 mypy 严格模式
 
@@ -40,22 +40,22 @@
 
 **⚠️ 关键**: 此阶段完成前，任何用户故事都不能开始
 
-- [x] T007 在 src/web_perf_monitor/exceptions.py 创建异常类（WebPerfMonitorError, ConfigurationError, NotificationError, ProfilerError）
-- [x] T008 [P] 在 src/web_perf_monitor/config.py 实现 MonitorConfig 数据类，包含所有字段和验证
-- [x] T009 [P] 在 src/web_perf_monitor/config.py 实现 MonitorConfig.from_env() 类方法
-- [x] T010 [P] 在 src/web_perf_monitor/config.py 实现 MonitorConfig.from_dict() 类方法
-- [x] T011 在 src/web_perf_monitor/models.py 实现 PerformanceProfile 数据类（frozen，含 to_dict/to_json）
-- [x] T012 [P] 在 src/web_perf_monitor/models.py 实现 TaskStatus 枚举
-- [x] T013 [P] 在 src/web_perf_monitor/models.py 实现 NotificationTask 数据类
-- [x] T014 在 src/web_perf_monitor/profiler.py 实现 Profiler 包装类（pyinstrument 集成）
-- [x] T015 在 src/web_perf_monitor/core/registry.py 创建 FrameworkRegistry 单例
-- [x] T016 [P] 在 src/web_perf_monitor/core/base_adapter.py 创建 BaseAdapter 抽象类（泛型：AppType, RequestType, ResponseType）
-- [x] T017 [P] 在 src/web_perf_monitor/core/base_middleware.py 创建 BaseMiddleware 抽象类（含 should_profile, process_profile 具体方法）
-- [x] T018 [P] 在 src/web_perf_monitor/core/base_decorator.py 创建 BaseDecorator 抽象类
-- [x] T019 在 src/web_perf_monitor/notifiers/base.py 创建 BaseNotifier 抽象类
-- [x] T020 [P] 在 src/web_perf_monitor/notifiers/__init__.py 实现 register_notifier 装饰器
-- [x] T021 创建 src/web_perf_monitor/core/__init__.py 导出（FrameworkRegistry, BaseAdapter, BaseMiddleware, BaseDecorator）
-- [x] T022 创建 src/web_perf_monitor/notifiers/__init__.py 导出（BaseNotifier, register_notifier）
+- [x] T007 在 src/web_perfmonitor/exceptions.py 创建异常类（WebPerfMonitorError, ConfigurationError, NotificationError, ProfilerError）
+- [x] T008 [P] 在 src/web_perfmonitor/config.py 实现 MonitorConfig 数据类，包含所有字段和验证
+- [x] T009 [P] 在 src/web_perfmonitor/config.py 实现 MonitorConfig.from_env() 类方法
+- [x] T010 [P] 在 src/web_perfmonitor/config.py 实现 MonitorConfig.from_dict() 类方法
+- [x] T011 在 src/web_perfmonitor/models.py 实现 PerformanceProfile 数据类（frozen，含 to_dict/to_json）
+- [x] T012 [P] 在 src/web_perfmonitor/models.py 实现 TaskStatus 枚举
+- [x] T013 [P] 在 src/web_perfmonitor/models.py 实现 NotificationTask 数据类
+- [x] T014 在 src/web_perfmonitor/profiler.py 实现 Profiler 包装类（pyinstrument 集成）
+- [x] T015 在 src/web_perfmonitor/core/registry.py 创建 FrameworkRegistry 单例
+- [x] T016 [P] 在 src/web_perfmonitor/core/base_adapter.py 创建 BaseAdapter 抽象类（泛型：AppType, RequestType, ResponseType）
+- [x] T017 [P] 在 src/web_perfmonitor/core/base_middleware.py 创建 BaseMiddleware 抽象类（含 should_profile, process_profile 具体方法）
+- [x] T018 [P] 在 src/web_perfmonitor/core/base_decorator.py 创建 BaseDecorator 抽象类
+- [x] T019 在 src/web_perfmonitor/notifiers/base.py 创建 BaseNotifier 抽象类
+- [x] T020 [P] 在 src/web_perfmonitor/notifiers/__init__.py 实现 register_notifier 装饰器
+- [x] T021 创建 src/web_perfmonitor/core/__init__.py 导出（FrameworkRegistry, BaseAdapter, BaseMiddleware, BaseDecorator）
+- [x] T022 创建 src/web_perfmonitor/notifiers/__init__.py 导出（BaseNotifier, register_notifier）
 
 **检查点**: 基础设施就绪 - 核心抽象已完成，可以开始用户故事实现
 
@@ -69,11 +69,11 @@
 
 ### 用户故事 1 实现
 
-- [x] T023 [US1] 在 src/web_perf_monitor/frameworks/flask/adapter.py 实现 FlaskAdapter（通过 FrameworkRegistry 注册）
-- [x] T024 [US1] 在 src/web_perf_monitor/frameworks/flask/middleware.py 实现 FlaskMiddleware（install, _before_request, _after_request）
-- [x] T025 [US1] 创建 src/web_perf_monitor/frameworks/flask/__init__.py 导出
-- [x] T026 [US1] 创建 src/web_perf_monitor/frameworks/__init__.py 实现 Flask 适配器自动发现
-- [x] T027 [US1] 在 src/web_perf_monitor/__init__.py 实现 PerformanceMiddleware 门面类（使用 FrameworkRegistry.auto_detect）
+- [x] T023 [US1] 在 src/web_perfmonitor/frameworks/flask/adapter.py 实现 FlaskAdapter（通过 FrameworkRegistry 注册）
+- [x] T024 [US1] 在 src/web_perfmonitor/frameworks/flask/middleware.py 实现 FlaskMiddleware（install, _before_request, _after_request）
+- [x] T025 [US1] 创建 src/web_perfmonitor/frameworks/flask/__init__.py 导出
+- [x] T026 [US1] 创建 src/web_perfmonitor/frameworks/__init__.py 实现 Flask 适配器自动发现
+- [x] T027 [US1] 在 src/web_perfmonitor/__init__.py 实现 PerformanceMiddleware 门面类（使用 FrameworkRegistry.auto_detect）
 - [x] T028 [US1] 在 FlaskMiddleware 中添加请求上下文处理（g.profiler 存储）
 - [x] T029 [US1] 在 FlaskMiddleware._after_request 中实现阈值检查
 - [x] T030 [US1] 确保零入侵：FlaskMiddleware 不修改响应内容/响应头/状态码
@@ -91,10 +91,10 @@
 
 ### 用户故事 2 实现
 
-- [x] T032 [US2] 在 src/web_perf_monitor/frameworks/flask/decorator.py 实现 FlaskProfileDecorator
+- [x] T032 [US2] 在 src/web_perfmonitor/frameworks/flask/decorator.py 实现 FlaskProfileDecorator
 - [x] T033 [US2] 在 FlaskProfileDecorator 中实现 _get_context（提取 Flask 请求上下文，如可用）
-- [x] T034 [US2] 从 src/web_perf_monitor/frameworks/flask/__init__.py 导出 FlaskProfileDecorator
-- [x] T035 [US2] 在 src/web_perf_monitor/__init__.py 实现 profile() 工厂函数
+- [x] T034 [US2] 从 src/web_perfmonitor/frameworks/flask/__init__.py 导出 FlaskProfileDecorator
+- [x] T035 [US2] 在 src/web_perfmonitor/__init__.py 实现 profile() 工厂函数
 - [x] T036 [US2] 确保装饰器保留函数签名和文档字符串（functools.wraps）
 - [x] T037 [US2] 确保装饰器正确处理异常（分析后重新抛出）
 - [x] T038 [US2] 装饰器模式下 PerformanceProfile 的 method 字段设为 "FUNCTION"
@@ -111,7 +111,7 @@
 
 ### 用户故事 3 实现
 
-- [x] T039 [US3] 在 src/web_perf_monitor/notifiers/local.py 实现 LocalNotifier
+- [x] T039 [US3] 在 src/web_perfmonitor/notifiers/local.py 实现 LocalNotifier
 - [x] T040 [US3] 在 LocalNotifier 中实现报告文件命名规范（{endpoint_safe}_{timestamp}_{id}.html/.txt）
 - [x] T041 [US3] 在 LocalNotifier 中实现目录不存在时自动创建
 - [x] T042 [US3] 在 LocalNotifier 中实现 markdown 格式报告生成
@@ -132,7 +132,7 @@
 
 ### 用户故事 4 实现
 
-- [x] T047 [US4] 在 src/web_perf_monitor/notifiers/mattermost.py 实现 MattermostNotifier
+- [x] T047 [US4] 在 src/web_perfmonitor/notifiers/mattermost.py 实现 MattermostNotifier
 - [x] T048 [US4] 在 MattermostNotifier 中使用 mattermostdriver 实现 Mattermost API 集成
 - [x] T049 [US4] 实现 Mattermost markdown 格式消息
 - [x] T050 [US4] 实现 Mattermost text 格式消息
@@ -153,8 +153,8 @@
 
 ### 用户故事 5 实现
 
-- [x] T055 [US5] 在 src/web_perf_monitor/models.py 实现 AlertRecord 数据类
-- [x] T056 [US5] 在 src/web_perf_monitor/alert.py 实现 AlertManager
+- [x] T055 [US5] 在 src/web_perfmonitor/models.py 实现 AlertRecord 数据类
+- [x] T056 [US5] 在 src/web_perfmonitor/alert.py 实现 AlertManager
 - [x] T057 [US5] 在 AlertManager 中实现 should_alert(endpoint) 方法（检查时间窗口）
 - [x] T058 [US5] 在 AlertManager 中实现 record_alert(endpoint) 方法
 - [x] T059 [US5] 在 AlertManager 中实现 alerts.json 文件持久化
@@ -174,7 +174,7 @@
 
 ### 用户故事 6 实现
 
-- [x] T063 [US6] 在 src/web_perf_monitor/filter.py 实现 UrlFilter 类
+- [x] T063 [US6] 在 src/web_perfmonitor/filter.py 实现 UrlFilter 类
 - [x] T064 [US6] 在 UrlFilter 中实现精确匹配逻辑（如 "/api/users"）
 - [x] T065 [US6] 在 UrlFilter 中使用 fnmatch 实现通配符匹配逻辑（如 "/api/*"）
 - [x] T066 [US6] 实现白名单优先规则（设置白名单时忽略黑名单）
@@ -196,8 +196,8 @@
 
 - [x] T070 [US7] 完善 pyproject.toml 元数据（description, authors, license, classifiers）
 - [x] T071 [US7] 在 pyproject.toml 配置可选依赖 [mattermost]
-- [x] T072 [US7] 在 src/web_perf_monitor/__init__.py 导出公共 API（PerformanceMiddleware, profile, MonitorConfig, PerformanceProfile）
-- [x] T073 [US7] 在 src/web_perf_monitor/__init__.py 添加版本号 __version__
+- [x] T072 [US7] 在 src/web_perfmonitor/__init__.py 导出公共 API（PerformanceMiddleware, profile, MonitorConfig, PerformanceProfile）
+- [x] T073 [US7] 在 src/web_perfmonitor/__init__.py 添加版本号 __version__
 - [x] T074 [US7] 创建 README.md 包含快速入门文档
 - [x] T075 [US7] 创建 CHANGELOG.md 记录 0.1.0 版本
 - [ ] T076 [US7] 验证包使用 python -m build 构建成功
@@ -211,7 +211,7 @@
 
 **目的**: 实现异步并行通知执行，确保零阻塞
 
-- [x] T078 在 src/web_perf_monitor/executor.py 实现 NotificationExecutor（基于 ThreadPoolExecutor）
+- [x] T078 在 src/web_perfmonitor/executor.py 实现 NotificationExecutor（基于 ThreadPoolExecutor）
 - [x] T079 在 NotificationExecutor 中实现 submit(profile) 方法（创建 NotificationTask，提交到线程池）
 - [x] T080 在 NotificationExecutor 中实现并行通知分发（所有通知器并发执行）
 - [x] T081 在 NotificationExecutor 中实现每个通知器的超时控制
@@ -283,12 +283,12 @@
 
 ```bash
 # 同时启动所有 [P] 基础设施任务：
-任务: "在 src/web_perf_monitor/config.py 实现 MonitorConfig 数据类"
-任务: "在 src/web_perf_monitor/config.py 实现 MonitorConfig.from_env()"
-任务: "在 src/web_perf_monitor/config.py 实现 MonitorConfig.from_dict()"
-任务: "在 src/web_perf_monitor/core/base_adapter.py 创建 BaseAdapter 抽象类"
-任务: "在 src/web_perf_monitor/core/base_middleware.py 创建 BaseMiddleware 抽象类"
-任务: "在 src/web_perf_monitor/core/base_decorator.py 创建 BaseDecorator 抽象类"
+任务: "在 src/web_perfmonitor/config.py 实现 MonitorConfig 数据类"
+任务: "在 src/web_perfmonitor/config.py 实现 MonitorConfig.from_env()"
+任务: "在 src/web_perfmonitor/config.py 实现 MonitorConfig.from_dict()"
+任务: "在 src/web_perfmonitor/core/base_adapter.py 创建 BaseAdapter 抽象类"
+任务: "在 src/web_perfmonitor/core/base_middleware.py 创建 BaseMiddleware 抽象类"
+任务: "在 src/web_perfmonitor/core/base_decorator.py 创建 BaseDecorator 抽象类"
 ```
 
 ## 并行示例：基础设施完成后的用户故事

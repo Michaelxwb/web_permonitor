@@ -61,7 +61,7 @@ specs/001-flask-perf-monitor/
 
 ```text
 src/
-├── web_perf_monitor/            # 核心包（框架无关）
+├── web_perfmonitor/            # 核心包（框架无关）
 │   ├── __init__.py              # 公共 API 导出
 │   ├── py.typed                 # 类型提示标记
 │   ├── config.py                # 配置管理
