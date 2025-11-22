@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "web-perfmonitor"
-version = "0.2.0"
+version = "1.0.0"
 description = "Zero-intrusion performance monitoring for Python web frameworks"
 readme = "README.md"
 license = {text = "MIT"}
