@@ -1,50 +1,158 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+同步影响报告
+==================
+版本变更: N/A (初始) → 1.0.0
+新增章节:
+  - I. 零入侵原则
+  - II. 性能开销限制
+  - III. 用户无感知
+  - IV. 易集成原则
+  - V. PyPI 发布标准
+  - 性能标准 (第二章节)
+  - 质量门禁 (第三章节)
+  - 治理规则
+移除章节: 无 (初始宪章)
+需更新的模板:
+  - .specify/templates/plan-template.md: ✅ 无需更新 (通用模板)
+  - .specify/templates/spec-template.md: ✅ 无需更新 (通用模板)
+  - .specify/templates/tasks-template.md: ✅ 无需更新 (通用模板)
+  - .specify/templates/checklist-template.md: ✅ 无需更新 (通用模板)
+  - .specify/templates/agent-file-template.md: ✅ 无需更新 (通用模板)
+待办事项: 无
+-->
 
-## Core Principles
+# Flask 性能监控系统宪章
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+## 核心原则
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### I. 零入侵原则
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+监控系统禁止以任何方式修改、干扰或改变宿主 Flask 应用的行为。
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**不可协商的规则：**
+- 集成必须通过单次导入和装饰器/中间件实现
+- 禁止修改现有路由处理器或应用逻辑
+- 禁止对 Flask 核心方法进行猴子补丁，除非用户明确选择启用
+- 禁止污染可能影响应用行为的全局状态
+- 监控代码必须能够完全移除，且除集成点外无需修改任何代码
+- 禁止引入与常见 Flask 生态系统冲突的新依赖
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+**设计理由：** 第三方应用必须信任添加此监控不会破坏现有功能或引入细微的行为变化。
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### II. 性能开销限制
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+监控开销必须保持在原接口响应时间的 5% 以下。
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+**不可协商的规则：**
+- 性能分析必须使用基于采样的方法（pyinstrument），而非追踪方式
+- 热路径插桩必须是 O(1) 或均摊 O(1) 复杂度
+- 告警评估必须异步或延迟执行
+- 正常负载下，每个被监控端点的内存开销禁止超过 50MB
+- 性能分析期间的 CPU 开销禁止导致请求超时时间增加
+- 开销必须可通过内置诊断工具进行测量和报告
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+**设计理由：** 一个降低性能的性能监控工具违背其初衷，将被用户弃用。
 
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+### III. 用户无感知
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+被监控 Flask 应用的终端用户在监控启用时，禁止感知到应用行为的任何差异。
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**不可协商的规则：**
+- 禁止用户可感知的额外延迟（新增延迟 < 5ms p99）
+- 禁止修改 HTTP 响应体、响应头或状态码
+- 禁止注入客户端 JavaScript 或操纵响应内容
+- 错误处理禁止向终端用户泄露监控相关的错误信息
+- 监控失败必须静默处理，不影响请求处理流程
+
+**设计理由：** 监控是运维层面的关注点，应对应用消费者完全透明。
+
+### IV. 易集成原则
+
+第三方项目必须能够在 5 分钟内以最少配置完成监控集成。
+
+**不可协商的规则：**
+- 通过单条 `pip install` 命令完成安装
+- 基本功能的集成禁止超过 3 行代码
+- 合理的默认值必须开箱即用，无需配置
+- 配置必须是可选的，并支持环境变量
+- 文档必须包含可直接复制粘贴的示例
+- 必须支持 Flask 2.0+ 和 Python 3.8+
+
+**设计理由：** 采用率取决于低摩擦；复杂的设置将被放弃。
+
+### V. PyPI 发布标准
+
+软件包必须符合 PyPI 专业发布的最佳实践。
+
+**不可协商的规则：**
+- 软件包必须有清晰、描述性的名称，遵循 PEP 423 指南
+- 必须包含完整的元数据（作者、许可证、分类器、关键词）
+- 必须使用语义化版本号（主版本.次版本.修订版本）
+- 必须包含类型提示和 py.typed 标记以支持 IDE
+- 发布前必须通过所有 PyPI 质量检查
+- 依赖项必须使用最低版本约束，而非精确版本
+
+**设计理由：** 专业的打包方式建立信任，确保在不同环境中可靠安装。
+
+## 性能标准
+
+所有与性能相关的实现必须遵循可测量的标准。
+
+**基准测试要求：**
+- 任何优化之前必须建立基线测量
+- 性能回归测试必须纳入 CI 流水线
+- 开销必须在参考硬件上测量（需记录硬件规格）
+- 结果必须可通过提供的基准测试脚本复现
+
+**告警阈值：**
+- 默认告警阈值必须基于统计分析（百分位数）
+- 自定义阈值必须支持绝对值和相对值
+- 必须通过冷却期和聚合来解决告警疲劳问题
+
+**性能分析约束：**
+- 性能分析必须是采样式的，而非持续性的
+- 分析数据保留期必须可配置，并有合理的默认值
+- 分析数据必须可序列化以便导出和分析
+
+## 质量门禁
+
+开发工作流必须在每个阶段强制执行质量要求。
+
+**代码质量：**
+- 所有代码必须通过 mypy 严格类型检查
+- 核心模块测试覆盖率必须超过 80%
+- 所有公共 API 必须有遵循 Google 风格的文档字符串
+- 通过 ruff 的代码检查必须零错误
+
+**测试要求：**
+- 单元测试必须模拟 pyinstrument 以避免测试不稳定
+- 集成测试必须使用真实的 Flask 应用
+- 性能测试必须验证 5% 开销要求
+- 合并前所有测试必须通过
+
+**文档要求：**
+- README 必须包含快速入门、配置参考和示例
+- CHANGELOG 必须记录所有面向用户的变更
+- API 文档必须自动生成并进行版本管理
+
+## 治理规则
+
+本宪章为 Flask 性能监控项目建立基础原则。所有开发决策必须与这些原则保持一致。
+
+**修订流程：**
+1. 提议的变更必须附带理由说明
+2. 对不可协商规则的变更需要明确的理由
+3. 性能标准的变更必须包含基准测试证据
+4. 所有修订必须更新宪章版本号
+
+**版本策略：**
+- 主版本：移除或重新定义核心原则
+- 次版本：添加新原则或大幅扩展指导内容
+- 修订版本：澄清说明、措辞改进、非语义性变更
+
+**合规审查：**
+- 所有 PR 必须验证与零入侵原则和开销原则的一致性
+- 影响性能的变更必须包含基准测试结果
+- 新功能必须证明不违反用户无感知原则
+
+**版本**: 1.0.0 | **批准日期**: 2025-11-22 | **最后修订**: 2025-11-22

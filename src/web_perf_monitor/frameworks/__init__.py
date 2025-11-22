@@ -1,0 +1,64 @@
+"""Framework integrations for web-perf-monitor.
+
+This module provides automatic framework discovery and registration.
+When imported, it registers all available framework adapters with
+the FrameworkRegistry.
+
+Supported Frameworks:
+    - Flask: Full support for request profiling and decorators
+
+Example:
+    # Importing this module registers all adapters
+    from web_perf_monitor import frameworks
+
+    # Or just import the main package, which does this automatically
+    from web_perf_monitor import PerformanceMiddleware
+"""
+
+import logging
+from typing import List
+
+logger = logging.getLogger(__name__)
+
+# Auto-discover and register framework adapters
+# Each framework module registers itself via @FrameworkRegistry.register
+_discovered_frameworks: List[str] = []
+
+
+def _discover_flask() -> bool:
+    """Attempt to discover and register Flask adapter."""
+    try:
+        from . import flask  # noqa: F401
+
+        _discovered_frameworks.append("flask")
+        logger.debug("Discovered Flask framework adapter")
+        return True
+    except ImportError:
+        logger.debug("Flask not available, skipping adapter registration")
+        return False
+
+
+def discover_frameworks() -> List[str]:
+    """Discover and register all available framework adapters.
+
+    Returns:
+        List of discovered framework names.
+    """
+    global _discovered_frameworks
+
+    if not _discovered_frameworks:
+        _discover_flask()
+        # Add more framework discovery here as needed
+        # _discover_django()
+        # _discover_fastapi()
+
+    return _discovered_frameworks.copy()
+
+
+# Auto-discover on import
+discover_frameworks()
+
+
+__all__ = [
+    "discover_frameworks",
+]
