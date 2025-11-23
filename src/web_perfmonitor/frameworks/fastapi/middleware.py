@@ -8,7 +8,7 @@ pyinstrument can correctly capture the full async call stack.
 """
 
 import logging
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 
 from starlette.requests import Request
@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 
 # Context variable for storing profiler instance per request
 _profiler_var: ContextVar[Optional["Profiler"]] = ContextVar("profiler", default=None)
+
+# Maximum size for metadata values to prevent memory issues
+MAX_METADATA_VALUE_SIZE = 10000
 
 
 class FastAPIMiddleware(BaseMiddleware):
@@ -101,12 +104,14 @@ class FastAPIMiddleware(BaseMiddleware):
 
                 # Start profiling
                 profiler: Optional["Profiler"] = None
+                token: Optional[Token] = None
                 try:
                     from ...profiler import Profiler
 
                     profiler = Profiler()
                     profiler.start()
-                    _profiler_var.set(profiler)
+                    # Use token for proper ContextVar cleanup
+                    token = _profiler_var.set(profiler)
                     logger.debug(f"Started profiling: {request.method} {path}")
                 except Exception as e:
                     logger.error(f"Error starting profiler: {e}", exc_info=True)
@@ -152,7 +157,13 @@ class FastAPIMiddleware(BaseMiddleware):
                     except Exception as e:
                         logger.error(f"Error in profiler: {e}", exc_info=True)
                     finally:
-                        _profiler_var.set(None)
+                        # Reset ContextVar using token for proper cleanup
+                        if token is not None:
+                            _profiler_var.reset(token)
+                        else:
+                            _profiler_var.set(None)
+                        # Explicitly delete profiler reference
+                        profiler = None
 
         # Add middleware using FastAPI's add_middleware
         # This properly wraps the ASGI app without breaking route decorators
@@ -181,6 +192,8 @@ class FastAPIMiddleware(BaseMiddleware):
     def _get_request_metadata(self, request: Request) -> Dict[str, Any]:
         """Get metadata from the current request.
 
+        Limits value sizes to prevent memory issues with large payloads.
+
         Args:
             request: The Starlette request object.
 
@@ -188,7 +201,7 @@ class FastAPIMiddleware(BaseMiddleware):
             Dictionary with request metadata.
         """
         metadata: Dict[str, Any] = {
-            "url": str(request.url),
+            "url": self._truncate_value(str(request.url)),
             "path": request.url.path,
             "method": request.method,
         }
@@ -198,7 +211,7 @@ class FastAPIMiddleware(BaseMiddleware):
 
         user_agent = request.headers.get("user-agent")
         if user_agent:
-            metadata["user_agent"] = user_agent
+            metadata["user_agent"] = self._truncate_value(user_agent)
 
         content_length = request.headers.get("content-length")
         if content_length:
@@ -208,15 +221,55 @@ class FastAPIMiddleware(BaseMiddleware):
                 pass
 
         if request.url.query:
-            metadata["query_string"] = request.url.query
+            metadata["query_string"] = self._truncate_value(request.url.query)
 
         if request.query_params:
-            metadata["query_params"] = dict(request.query_params)
+            # Limit query params to prevent large payloads
+            params = dict(request.query_params)
+            metadata["query_params"] = self._truncate_dict(params)
 
         if hasattr(request, "path_params") and request.path_params:
             metadata["path_params"] = dict(request.path_params)
 
         return metadata
+
+    def _truncate_value(self, value: str, max_size: int = MAX_METADATA_VALUE_SIZE) -> str:
+        """Truncate a string value if it exceeds max size.
+
+        Args:
+            value: The string value to truncate.
+            max_size: Maximum allowed size.
+
+        Returns:
+            Truncated string with indicator if truncated.
+        """
+        if len(value) <= max_size:
+            return value
+        return value[:max_size] + "... [truncated]"
+
+    def _truncate_dict(
+        self, data: Dict[str, Any], max_items: int = 100, max_value_size: int = 1000
+    ) -> Dict[str, Any]:
+        """Truncate a dictionary to prevent memory issues.
+
+        Args:
+            data: The dictionary to truncate.
+            max_items: Maximum number of items to keep.
+            max_value_size: Maximum size for string values.
+
+        Returns:
+            Truncated dictionary.
+        """
+        result: Dict[str, Any] = {}
+        for i, (key, value) in enumerate(data.items()):
+            if i >= max_items:
+                result["_truncated"] = f"... and {len(data) - max_items} more items"
+                break
+            if isinstance(value, str) and len(value) > max_value_size:
+                result[key] = value[:max_value_size] + "... [truncated]"
+            else:
+                result[key] = value
+        return result
 
     def _before_request(self) -> None:
         """Hook called before request processing.

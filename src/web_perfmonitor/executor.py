@@ -139,10 +139,27 @@ class NotificationExecutor:
         with self._lock:
             future = self.executor.submit(self._execute_task, task)
             self._active_futures.append(future)
-            # Clean up completed futures
-            self._active_futures = [f for f in self._active_futures if not f.done()]
+            # Clean up completed futures and enforce limit
+            self._cleanup_completed_futures()
 
         return task
+
+    def _cleanup_completed_futures(self) -> None:
+        """Remove completed futures from tracking.
+
+        Must be called with lock held.
+        Also enforces a maximum limit to prevent unbounded growth.
+        """
+        # Remove completed futures
+        self._active_futures = [f for f in self._active_futures if not f.done()]
+
+        # Safety limit: if too many pending futures, log warning
+        max_futures = 1000
+        if len(self._active_futures) > max_futures:
+            logger.warning(
+                f"Too many pending notification futures: {len(self._active_futures)}. "
+                f"Consider increasing worker threads or reducing notification load."
+            )
 
     def _execute_task(self, task: NotificationTask) -> None:
         """Execute a notification task.
@@ -302,6 +319,7 @@ class NotificationExecutor:
         """Gracefully shutdown the executor.
 
         Waits for pending notifications to complete up to the timeout.
+        Clears all cached resources to prevent memory leaks.
 
         Args:
             timeout: Maximum time to wait (seconds). Uses config if None.
@@ -327,7 +345,20 @@ class NotificationExecutor:
                     except Exception as e:
                         logger.error(f"Error during shutdown: {e}")
 
+                # Clear futures list
+                self._active_futures.clear()
+
             self._executor = None
+
+        # Clear notifier cache to release resources
+        with self._lock:
+            notifier_count = len(self._notifiers)
+            self._notifiers.clear()
+            if notifier_count > 0:
+                logger.debug(f"Cleared {notifier_count} cached notifiers")
+
+        # Clear local notifier
+        self._local_notifier = None
 
         logger.info("Notification executor shutdown complete")
 

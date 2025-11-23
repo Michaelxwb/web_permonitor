@@ -7,6 +7,7 @@ and implementing time-window based deduplication.
 import json
 import logging
 import threading
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional, TYPE_CHECKING
@@ -17,6 +18,11 @@ if TYPE_CHECKING:
     from .config import MonitorConfig
 
 logger = logging.getLogger(__name__)
+
+# Default maximum number of alert records to prevent unbounded memory growth
+DEFAULT_MAX_ALERT_RECORDS = 10000
+# Default cleanup interval in seconds (1 hour)
+DEFAULT_CLEANUP_INTERVAL = 3600
 
 
 class AlertManager:
@@ -42,18 +48,35 @@ class AlertManager:
             send_notification(profile)
     """
 
-    def __init__(self, config: "MonitorConfig") -> None:
+    def __init__(
+        self,
+        config: "MonitorConfig",
+        max_records: int = DEFAULT_MAX_ALERT_RECORDS,
+        auto_cleanup: bool = True,
+        cleanup_interval: int = DEFAULT_CLEANUP_INTERVAL,
+    ) -> None:
         """Initialize the alert manager.
 
         Args:
             config: The monitoring configuration.
+            max_records: Maximum number of alert records to keep in memory.
+            auto_cleanup: Whether to start automatic cleanup thread.
+            cleanup_interval: Interval between automatic cleanups (seconds).
         """
         self.config = config
         self.alert_window = timedelta(days=config.alert_window_days)
         self.alerts_file = Path(config.log_path) / "alerts.json"
         self._alerts: Dict[str, AlertRecord] = {}
         self._lock = threading.Lock()
+        self._max_records = max_records
+        self._cleanup_interval = cleanup_interval
+        self._shutdown = False
+        self._cleanup_thread: Optional[threading.Thread] = None
         self._load_alerts()
+
+        # Start automatic cleanup thread if enabled
+        if auto_cleanup:
+            self._start_cleanup_thread()
 
     def should_alert(self, endpoint: str) -> bool:
         """Check if an alert should be sent for the given endpoint.
@@ -83,6 +106,7 @@ class AlertManager:
         """Record that an alert was sent for the given endpoint.
 
         Updates the alert record and persists to disk.
+        Enforces max_records limit by evicting oldest entries.
 
         Args:
             endpoint: The endpoint identifier.
@@ -92,6 +116,8 @@ class AlertManager:
             record = self._alerts.get(endpoint)
 
             if record is None:
+                # Check if we need to evict old records before adding new one
+                self._evict_if_needed()
                 self._alerts[endpoint] = AlertRecord(
                     endpoint=endpoint,
                     last_alert_time=now,
@@ -228,3 +254,74 @@ class AlertManager:
 
         except Exception as e:
             logger.error(f"Error saving alerts file: {e}", exc_info=True)
+
+    def _evict_if_needed(self) -> int:
+        """Evict oldest records if we're at max capacity.
+
+        Must be called with lock held.
+
+        Returns:
+            Number of records evicted.
+        """
+        if len(self._alerts) < self._max_records:
+            return 0
+
+        # Evict 10% of oldest records to avoid frequent evictions
+        evict_count = max(1, self._max_records // 10)
+
+        # Sort by last_alert_time and evict oldest
+        sorted_endpoints = sorted(
+            self._alerts.items(),
+            key=lambda x: x[1].last_alert_time,
+        )
+
+        evicted = 0
+        for endpoint, _ in sorted_endpoints[:evict_count]:
+            del self._alerts[endpoint]
+            evicted += 1
+
+        if evicted > 0:
+            logger.info(f"Evicted {evicted} oldest alert records (max={self._max_records})")
+
+        return evicted
+
+    def _start_cleanup_thread(self) -> None:
+        """Start the background cleanup thread."""
+        self._cleanup_thread = threading.Thread(
+            target=self._cleanup_loop,
+            name="alert-cleanup",
+            daemon=True,
+        )
+        self._cleanup_thread.start()
+        logger.debug(f"Started alert cleanup thread (interval={self._cleanup_interval}s)")
+
+    def _cleanup_loop(self) -> None:
+        """Background loop for periodic cleanup."""
+        while not self._shutdown:
+            # Sleep in small intervals to allow quick shutdown
+            for _ in range(self._cleanup_interval):
+                if self._shutdown:
+                    break
+                time.sleep(1)
+
+            if not self._shutdown:
+                expired = self.cleanup_expired()
+                if expired > 0:
+                    logger.info(f"Automatic cleanup removed {expired} expired alert records")
+
+    def shutdown(self) -> None:
+        """Shutdown the alert manager and cleanup thread."""
+        self._shutdown = True
+        if self._cleanup_thread is not None and self._cleanup_thread.is_alive():
+            self._cleanup_thread.join(timeout=2.0)
+            logger.debug("Alert cleanup thread stopped")
+
+    @property
+    def record_count(self) -> int:
+        """Get the current number of alert records.
+
+        Returns:
+            Number of records in memory.
+        """
+        with self._lock:
+            return len(self._alerts)

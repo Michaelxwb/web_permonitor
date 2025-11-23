@@ -16,6 +16,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Maximum size for metadata values to prevent memory issues
+MAX_METADATA_VALUE_SIZE = 10000
+
 
 class FlaskMiddleware(BaseMiddleware):
     """Flask middleware for automatic request profiling.
@@ -54,8 +57,8 @@ class FlaskMiddleware(BaseMiddleware):
     def install(self, app: "Flask") -> None:
         """Install the middleware into a Flask application.
 
-        Registers before_request and after_request handlers with
-        the Flask application.
+        Registers before_request, after_request, and teardown_request
+        handlers with the Flask application.
 
         Args:
             app: The Flask application instance.
@@ -63,6 +66,7 @@ class FlaskMiddleware(BaseMiddleware):
         self._app = app
         app.before_request(self._before_request)
         app.after_request(self._after_request)
+        app.teardown_request(self._teardown_request)
         logger.debug(f"FlaskMiddleware installed on app: {app.name}")
 
     def _before_request(self) -> None:
@@ -141,6 +145,32 @@ class FlaskMiddleware(BaseMiddleware):
         # Return response unmodified (zero intrusion)
         return response
 
+    def _teardown_request(self, exception: Optional[Exception] = None) -> None:
+        """Hook called after request is complete, even if an exception occurred.
+
+        Ensures profiler is always cleaned up to prevent memory leaks.
+        This is a safety net for cases where after_request might not be called.
+
+        Args:
+            exception: The exception that occurred, if any.
+        """
+        from flask import g
+
+        # Ensure profiler is cleaned up even if after_request didn't run
+        profiler = getattr(g, "_perf_monitor_profiler", None)
+        if profiler is not None:
+            try:
+                # Stop profiler if still running
+                if hasattr(profiler, "_profiler") and profiler._profiler.is_running:
+                    profiler.stop()
+                    logger.debug("Profiler stopped in teardown (exception occurred)")
+            except Exception as e:
+                logger.debug(f"Error stopping profiler in teardown: {e}")
+            finally:
+                # Always clean up the reference
+                if hasattr(g, "_perf_monitor_profiler"):
+                    delattr(g, "_perf_monitor_profiler")
+
     def _build_endpoint_key(self) -> str:
         """Build endpoint key for deduplication.
 
@@ -164,13 +194,15 @@ class FlaskMiddleware(BaseMiddleware):
     def _get_request_metadata(self) -> Dict[str, Any]:
         """Get metadata from the current Flask request.
 
+        Limits value sizes to prevent memory issues with large payloads.
+
         Returns:
             Dictionary with request metadata.
         """
         from flask import request
 
         metadata: Dict[str, Any] = {
-            "url": request.url,
+            "url": self._truncate_value(request.url),
             "path": request.path,
             "method": request.method,
             "remote_addr": request.remote_addr,
@@ -178,7 +210,7 @@ class FlaskMiddleware(BaseMiddleware):
 
         # Add user agent if available
         if request.user_agent:
-            metadata["user_agent"] = request.user_agent.string
+            metadata["user_agent"] = self._truncate_value(request.user_agent.string)
 
         # Add content length if available
         if request.content_length:
@@ -186,21 +218,68 @@ class FlaskMiddleware(BaseMiddleware):
 
         # Add query string if present
         if request.query_string:
-            metadata["query_string"] = request.query_string.decode("utf-8", errors="ignore")
+            query_str = request.query_string.decode("utf-8", errors="ignore")
+            metadata["query_string"] = self._truncate_value(query_str)
 
-        # Add parsed query parameters as dict
+        # Add parsed query parameters as dict (with size limits)
         if request.args:
-            metadata["query_params"] = dict(request.args)
+            metadata["query_params"] = self._truncate_dict(dict(request.args))
 
-        # Add form data if present (for POST requests)
+        # Add form data if present (for POST requests) - with size limits
         if request.form:
-            metadata["form_data"] = dict(request.form)
+            metadata["form_data"] = self._truncate_dict(dict(request.form))
 
-        # Add JSON body if present
+        # Add JSON body if present - with size limits
         try:
             if request.is_json and request.json:
-                metadata["json_body"] = request.json
+                json_body = request.json
+                # Limit JSON body size
+                if isinstance(json_body, dict):
+                    metadata["json_body"] = self._truncate_dict(json_body)
+                elif isinstance(json_body, list) and len(json_body) > 100:
+                    metadata["json_body"] = json_body[:100]
+                    metadata["json_body_truncated"] = True
+                else:
+                    metadata["json_body"] = json_body
         except Exception:
             pass
 
         return metadata
+
+    def _truncate_value(self, value: str, max_size: int = MAX_METADATA_VALUE_SIZE) -> str:
+        """Truncate a string value if it exceeds max size.
+
+        Args:
+            value: The string value to truncate.
+            max_size: Maximum allowed size.
+
+        Returns:
+            Truncated string with indicator if truncated.
+        """
+        if len(value) <= max_size:
+            return value
+        return value[:max_size] + "... [truncated]"
+
+    def _truncate_dict(
+        self, data: Dict[str, Any], max_items: int = 100, max_value_size: int = 1000
+    ) -> Dict[str, Any]:
+        """Truncate a dictionary to prevent memory issues.
+
+        Args:
+            data: The dictionary to truncate.
+            max_items: Maximum number of items to keep.
+            max_value_size: Maximum size for string values.
+
+        Returns:
+            Truncated dictionary.
+        """
+        result: Dict[str, Any] = {}
+        for i, (key, value) in enumerate(data.items()):
+            if i >= max_items:
+                result["_truncated"] = f"... and {len(data) - max_items} more items"
+                break
+            if isinstance(value, str) and len(value) > max_value_size:
+                result[key] = value[:max_value_size] + "... [truncated]"
+            else:
+                result[key] = value
+        return result
