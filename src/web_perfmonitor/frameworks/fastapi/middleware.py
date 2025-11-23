@@ -96,11 +96,25 @@ class FastAPIMiddleware(BaseMiddleware):
                 # Create request object for path checking
                 request = Request(scope)
                 path = request.url.path
+                method = request.method
 
                 # Check if this path should be profiled
                 if not parent.should_profile(path):
                     await self.app(scope, receive, send)
                     return
+
+                # For POST/PUT/PATCH, capture body for deduplication
+                body_hash = ""
+                body_bytes: bytes = b""
+                if method in ("POST", "PUT", "PATCH"):
+                    body_bytes = await self._read_body(receive)
+                    body_hash = parent._compute_body_hash(body_bytes)
+
+                    # Create a new receive that returns the cached body
+                    async def receive_wrapper() -> Message:
+                        return {"type": "http.request", "body": body_bytes, "more_body": False}
+                else:
+                    receive_wrapper = receive  # type: ignore
 
                 # Start profiling
                 profiler: Optional["Profiler"] = None
@@ -112,10 +126,10 @@ class FastAPIMiddleware(BaseMiddleware):
                     profiler.start()
                     # Use token for proper ContextVar cleanup
                     token = _profiler_var.set(profiler)
-                    logger.debug(f"Started profiling: {request.method} {path}")
+                    logger.debug(f"Started profiling: {method} {path}")
                 except Exception as e:
                     logger.error(f"Error starting profiler: {e}", exc_info=True)
-                    await self.app(scope, receive, send)
+                    await self.app(scope, receive_wrapper, send)
                     return
 
                 # Track response status
@@ -129,7 +143,7 @@ class FastAPIMiddleware(BaseMiddleware):
 
                 try:
                     # Process the request - this runs in the same async context
-                    await self.app(scope, receive, send_wrapper)
+                    await self.app(scope, receive_wrapper, send_wrapper)
                 finally:
                     # Stop profiler and process results
                     try:
@@ -138,10 +152,10 @@ class FastAPIMiddleware(BaseMiddleware):
                             duration = profiler.duration
 
                             if duration > parent.config.threshold_seconds:
-                                endpoint_key = parent._build_endpoint_key(request)
+                                endpoint_key = parent._build_endpoint_key(request, body_hash)
                                 profile = profiler.create_profile(
                                     endpoint=endpoint_key,
-                                    method=request.method,
+                                    method=method,
                                     metadata=parent._get_request_metadata(request),
                                 )
                                 parent.process_profile(profile)
@@ -165,27 +179,65 @@ class FastAPIMiddleware(BaseMiddleware):
                         # Explicitly delete profiler reference
                         profiler = None
 
+            async def _read_body(self, receive: Receive) -> bytes:
+                """Read the entire request body."""
+                body_parts = []
+                while True:
+                    message = await receive()
+                    body = message.get("body", b"")
+                    if body:
+                        body_parts.append(body)
+                    if not message.get("more_body", False):
+                        break
+                return b"".join(body_parts)
+
         # Add middleware using FastAPI's add_middleware
         # This properly wraps the ASGI app without breaking route decorators
         app.add_middleware(ProfilerMiddleware)
 
         logger.debug(f"FastAPIMiddleware installed on app: {app.title}")
 
-    def _build_endpoint_key(self, request: Request) -> str:
+    def _compute_body_hash(self, body: bytes) -> str:
+        """Compute a hash of the request body for deduplication.
+
+        Args:
+            body: The request body bytes.
+
+        Returns:
+            Short hash string (8 characters) of the body.
+        """
+        import hashlib
+
+        if not body:
+            return ""
+
+        try:
+            return hashlib.md5(body).hexdigest()[:8]
+        except Exception:
+            return ""
+
+    def _build_endpoint_key(self, request: Request, body_hash: str = "") -> str:
         """Build endpoint key for deduplication.
 
-        Includes method, path, and query parameters for fine-grained deduplication.
+        Includes method, path, query parameters, and request body hash
+        for fine-grained deduplication. This ensures POST requests with
+        different body parameters are not incorrectly deduplicated.
 
         Args:
             request: The Starlette request object.
+            body_hash: Hash of the request body (for POST/PUT/PATCH).
 
         Returns:
-            Endpoint key string like "GET /api/users?id=1"
+            Endpoint key string like "POST /api/users?id=1#body_hash"
         """
         key = f"{request.method} {request.url.path}"
 
         if request.url.query:
             key = f"{key}?{request.url.query}"
+
+        # For POST/PUT/PATCH requests, include body hash for deduplication
+        if request.method in ("POST", "PUT", "PATCH") and body_hash:
+            key = f"{key}#{body_hash}"
 
         return key
 

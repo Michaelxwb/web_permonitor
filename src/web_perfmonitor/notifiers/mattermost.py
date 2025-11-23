@@ -177,16 +177,24 @@ class MattermostNotifier(BaseNotifier):
             profile: The performance profile.
 
         Returns:
-            Brief markdown message.
+            Brief markdown message with table format.
         """
+        # Extract metadata
+        metadata = profile.metadata or {}
+        path = metadata.get("path", profile.endpoint)
+        status_code = metadata.get("status_code", 200)
+
+        # Format timestamp
+        timestamp_str = profile.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+        # Format duration
+        duration_str = f"{profile.duration_seconds:.2f}秒"
+
         return (
-            f"### :warning: Performance Alert: `{profile.endpoint}`\n\n"
-            f"| Field | Value |\n"
-            f"|-------|-------|\n"
-            f"| **Method** | {profile.method} |\n"
-            f"| **Duration** | {profile.duration_seconds:.3f}s |\n"
-            f"| **Timestamp** | {profile.timestamp.isoformat()} |\n\n"
-            f"See attached zip file for detailed HTML and Markdown reports."
+            f"### 🚦性能告警\n\n"
+            f"| 时间 | 接口 | 方法 | 响应时间 | 状态码 |\n"
+            f"|------|------|------|----------|--------|\n"
+            f"| {timestamp_str} | {path} | {profile.method} | {duration_str} | {status_code} |\n\n"
         )
 
     def validate_config(self) -> bool:
@@ -220,27 +228,29 @@ class MattermostNotifier(BaseNotifier):
         Returns:
             Markdown formatted message for Mattermost.
         """
+        # Extract metadata
+        metadata = profile.metadata or {}
+        path = metadata.get("path", profile.endpoint)
+        status_code = metadata.get("status_code", 200)
+
+        # Format timestamp
+        timestamp_str = profile.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+        # Format duration
+        duration_str = f"{profile.duration_seconds:.2f}秒"
+
         lines = [
-            f"### :warning: Performance Alert: `{profile.endpoint}`",
+            f"### 🚦性能告警",
             "",
-            f"| Field | Value |",
-            f"|-------|-------|",
-            f"| **Endpoint** | `{profile.endpoint}` |",
-            f"| **Method** | {profile.method} |",
-            f"| **Duration** | {profile.duration_seconds:.3f}s |",
-            f"| **Timestamp** | {profile.timestamp.isoformat()} |",
+            f"| 时间 | 接口 | 方法 | 响应时间 | 状态码 |",
+            f"|------|------|------|----------|--------|",
+            f"| {timestamp_str} | {path} | {profile.method} | {duration_str} | {status_code} |",
             "",
         ]
 
-        if profile.metadata:
-            lines.append("**Request Details:**")
-            for key, value in profile.metadata.items():
-                lines.append(f"- {key}: `{value}`")
-            lines.append("")
-
         # Add collapsed text report
         lines.append("<details>")
-        lines.append("<summary>Performance Profile</summary>")
+        lines.append("<summary>性能分析报告</summary>")
         lines.append("")
         lines.append("```")
         # Truncate long reports

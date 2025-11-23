@@ -174,11 +174,14 @@ class FlaskMiddleware(BaseMiddleware):
     def _build_endpoint_key(self) -> str:
         """Build endpoint key for deduplication.
 
-        Includes method, path, and query parameters for fine-grained deduplication.
+        Includes method, path, query parameters, and request body hash
+        for fine-grained deduplication. This ensures POST requests with
+        different body parameters are not incorrectly deduplicated.
 
         Returns:
-            Endpoint key string like "GET /api/users?id=1"
+            Endpoint key string like "POST /api/users?id=1#body_hash"
         """
+        import hashlib
         from flask import request
 
         # Start with method and path
@@ -189,7 +192,43 @@ class FlaskMiddleware(BaseMiddleware):
             query = request.query_string.decode("utf-8", errors="ignore")
             key = f"{key}?{query}"
 
+        # For POST/PUT/PATCH requests, include body hash for deduplication
+        if request.method in ("POST", "PUT", "PATCH"):
+            body_hash = self._get_body_hash()
+            if body_hash:
+                key = f"{key}#{body_hash}"
+
         return key
+
+    def _get_body_hash(self) -> str:
+        """Generate a hash of the request body for deduplication.
+
+        Returns:
+            Short hash string of the request body, or empty string if no body.
+        """
+        import hashlib
+        import json
+        from flask import request
+
+        try:
+            # Try JSON body first
+            if request.is_json and request.json:
+                body_str = json.dumps(request.json, sort_keys=True)
+                return hashlib.md5(body_str.encode()).hexdigest()[:8]
+
+            # Try form data
+            if request.form:
+                form_str = "&".join(f"{k}={v}" for k, v in sorted(request.form.items()))
+                return hashlib.md5(form_str.encode()).hexdigest()[:8]
+
+            # Try raw data
+            if request.data:
+                return hashlib.md5(request.data).hexdigest()[:8]
+
+        except Exception:
+            pass
+
+        return ""
 
     def _get_request_metadata(self) -> Dict[str, Any]:
         """Get metadata from the current Flask request.
