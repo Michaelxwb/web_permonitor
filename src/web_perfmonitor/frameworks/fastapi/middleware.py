@@ -100,6 +100,7 @@ class FastAPIMiddleware(BaseMiddleware):
 
                 # Check if this path should be profiled
                 if not parent.should_profile(path):
+                    logger.debug(f"Skipping profiling for blacklisted path: {method} {path}")
                     await self.app(scope, receive, send)
                     return
 
@@ -159,8 +160,8 @@ class FastAPIMiddleware(BaseMiddleware):
                                     metadata=parent._get_request_metadata(request),
                                 )
                                 parent.process_profile(profile)
-                                logger.debug(
-                                    f"Threshold exceeded for {path}: "
+                                logger.info(
+                                    f"Performance threshold exceeded: {method} {path} - "
                                     f"{duration:.3f}s > {parent.config.threshold_seconds}s"
                                 )
                             else:

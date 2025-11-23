@@ -79,6 +79,7 @@ class FlaskMiddleware(BaseMiddleware):
 
         # Check if this path should be profiled
         if not self.should_profile(request.path):
+            logger.debug(f"Skipping profiling for blacklisted path: {request.method} {request.path}")
             return
 
         try:
@@ -125,8 +126,8 @@ class FlaskMiddleware(BaseMiddleware):
                     metadata=self._get_request_metadata(),
                 )
                 self.process_profile(profile)
-                logger.debug(
-                    f"Threshold exceeded for {request.path}: "
+                logger.info(
+                    f"Performance threshold exceeded: {request.method} {request.path} - "
                     f"{duration:.3f}s > {self.config.threshold_seconds}s"
                 )
             else:

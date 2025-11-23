@@ -245,10 +245,12 @@ class AlertManager:
                 for endpoint, record in self._alerts.items()
             }
 
-            # Write atomically (write to temp, then rename)
+            # Write atomically (write to temp, then replace)
+            # Use replace() instead of rename() for Windows compatibility
+            # rename() fails on Windows if target file exists
             temp_file = self.alerts_file.with_suffix(".tmp")
             temp_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
-            temp_file.rename(self.alerts_file)
+            temp_file.replace(self.alerts_file)
 
             logger.debug(f"Saved {len(self._alerts)} alert records to {self.alerts_file}")
 

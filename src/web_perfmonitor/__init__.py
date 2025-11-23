@@ -49,6 +49,9 @@ Function-Level Profiling:
 __version__ = "0.1.0"
 
 import logging
+import os
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from .config import MonitorConfig
@@ -65,8 +68,64 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Track if file logging has been set up
+_file_handler_initialized = False
+
 # Module-level config for decorator
 _global_config: Optional[MonitorConfig] = None
+
+
+def _setup_file_logging(log_path: str, log_level: int = logging.INFO) -> None:
+    """Set up file logging for the web_perfmonitor package.
+
+    Creates a rotating log file in the specified directory.
+
+    Args:
+        log_path: Directory path for log files.
+        log_level: Logging level (default: INFO).
+    """
+    global _file_handler_initialized
+
+    if _file_handler_initialized:
+        return
+
+    try:
+        # Ensure directory exists
+        log_dir = Path(log_path)
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create log file path
+        log_file = log_dir / "perfmonitor.log"
+
+        # Create rotating file handler (10MB max, keep 5 backups)
+        file_handler = RotatingFileHandler(
+            log_file,
+            maxBytes=10 * 1024 * 1024,  # 10MB
+            backupCount=5,
+            encoding="utf-8",
+        )
+
+        # Set format
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(log_level)
+
+        # Add handler to web_perfmonitor logger and all sub-loggers
+        root_logger = logging.getLogger("web_perfmonitor")
+        root_logger.addHandler(file_handler)
+
+        # Ensure the logger level allows the messages through
+        if root_logger.level == logging.NOTSET or root_logger.level > log_level:
+            root_logger.setLevel(log_level)
+
+        _file_handler_initialized = True
+        logger.info(f"File logging initialized: {log_file}")
+
+    except Exception as e:
+        logger.warning(f"Failed to set up file logging: {e}")
 
 
 class PerformanceMiddleware:
@@ -129,6 +188,9 @@ class PerformanceMiddleware:
         self.config = config
         _global_config = config
 
+        # Set up file logging in log_path directory
+        _setup_file_logging(config.log_path)
+
         # Auto-discover frameworks
         from . import frameworks  # noqa: F401
         from .core import FrameworkRegistry
@@ -143,9 +205,24 @@ class PerformanceMiddleware:
 
         # Create and install middleware
         self._middleware: "BaseMiddleware" = adapter.create_middleware(app, config)
+
+        # Log startup information with configuration details
         logger.info(
             f"PerformanceMiddleware installed for {adapter.get_framework_name()} app"
         )
+        logger.info(
+            f"Performance monitoring enabled - "
+            f"threshold: {config.threshold_seconds}s, "
+            f"log_path: {config.log_path}, "
+            f"alert_window: {config.alert_window_days} days"
+        )
+        if config.url_whitelist:
+            logger.info(f"URL whitelist: {config.url_whitelist}")
+        if config.url_blacklist:
+            logger.info(f"URL blacklist: {config.url_blacklist}")
+        if config.notice_list:
+            notifier_types = [n.get("type", "unknown") for n in config.notice_list]
+            logger.info(f"Notifiers configured: {notifier_types}")
 
     @property
     def middleware(self) -> "BaseMiddleware":
