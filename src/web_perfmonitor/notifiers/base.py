@@ -130,6 +130,38 @@ class BaseNotifier(ABC):
         ]
 
         if profile.metadata:
+            # Add Request Details section first
+            url = profile.metadata.get("url", "")
+            path = profile.metadata.get("path", profile.endpoint)
+            method = profile.metadata.get("method", profile.method)
+
+            # Collect all request parameters
+            query_params = profile.metadata.get("query_params")
+            form_data = profile.metadata.get("form_data")
+            json_body = profile.metadata.get("json_body")
+
+            # Build request params dict
+            request_params = {}
+            if query_params:
+                request_params.update(query_params)
+            if form_data:
+                request_params.update(form_data)
+            if json_body and isinstance(json_body, dict):
+                request_params.update(json_body)
+            elif json_body:
+                request_params = json_body
+
+            # Add Request Details section
+            lines.append("### 请求详情")
+            lines.append("")
+            if url:
+                lines.append(f"**URL**: {url}")
+            lines.append(f"**路径**: {path}")
+            lines.append(f"**请求方法**: {method}")
+            if request_params:
+                lines.append(f"**请求参数**: {json.dumps(request_params, ensure_ascii=False)}")
+            lines.append("")
+
             # Extract request parameters for special formatting
             query_params = profile.metadata.get("query_params")
             form_data = profile.metadata.get("form_data")
@@ -297,6 +329,38 @@ class BaseNotifier(ABC):
         import html
         import json
 
+        # Build request details section
+        details_html = ""
+        if profile.metadata:
+            url = profile.metadata.get("url", "")
+            path = profile.metadata.get("path", profile.endpoint)
+            method = profile.metadata.get("method", profile.method)
+
+            # Collect all request parameters
+            query_params = profile.metadata.get("query_params")
+            form_data = profile.metadata.get("form_data")
+            json_body = profile.metadata.get("json_body")
+
+            # Build request params dict
+            request_params = {}
+            if query_params:
+                request_params.update(query_params)
+            if form_data:
+                request_params.update(form_data)
+            if json_body and isinstance(json_body, dict):
+                request_params.update(json_body)
+            elif json_body:
+                request_params = json_body
+
+            details_html = "<h3>请求详情</h3><ul>"
+            if url:
+                details_html += f"<li><strong>URL:</strong> {html.escape(url)}</li>"
+            details_html += f"<li><strong>路径:</strong> {html.escape(path)}</li>"
+            details_html += f"<li><strong>请求方法:</strong> {html.escape(method)}</li>"
+            if request_params:
+                details_html += f"<li><strong>请求参数:</strong> {html.escape(json.dumps(request_params, ensure_ascii=False))}</li>"
+            details_html += "</ul>"
+
         # Build request params section
         params_html = ""
         if profile.metadata:
@@ -433,6 +497,7 @@ class BaseNotifier(ABC):
         </tr>
     </table>
 
+    {details_html}
     {params_html}
     {metadata_html}
 
