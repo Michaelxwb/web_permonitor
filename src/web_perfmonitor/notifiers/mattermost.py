@@ -228,6 +228,8 @@ class MattermostNotifier(BaseNotifier):
         Returns:
             Markdown formatted message for Mattermost.
         """
+        import json
+
         # Extract metadata
         metadata = profile.metadata or {}
         path = metadata.get("path", profile.endpoint)
@@ -247,6 +249,41 @@ class MattermostNotifier(BaseNotifier):
             f"| {timestamp_str} | {path} | {profile.method} | {duration_str} | {status_code} |",
             "",
         ]
+
+        # Add request details section
+        if metadata:
+            url = metadata.get("url", "")
+            method = metadata.get("method", profile.method)
+
+            # Collect all request parameters
+            query_params = metadata.get("query_params")
+            form_data = metadata.get("form_data")
+            json_body = metadata.get("json_body")
+
+            # Build request params dict
+            request_params = {}
+            if query_params:
+                request_params.update(query_params)
+            if form_data:
+                request_params.update(form_data)
+            if json_body and isinstance(json_body, dict):
+                request_params.update(json_body)
+            elif json_body:
+                request_params = json_body
+
+            if url or request_params:
+                lines.append("<details>")
+                lines.append("<summary>请求详情</summary>")
+                lines.append("")
+                if url:
+                    lines.append(f"**URL**: {url}")
+                lines.append(f"**路径**: {path}")
+                lines.append(f"**请求方法**: {method}")
+                if request_params:
+                    lines.append(f"**请求参数**: {json.dumps(request_params, ensure_ascii=False)}")
+                lines.append("")
+                lines.append("</details>")
+                lines.append("")
 
         # Add collapsed text report
         lines.append("<details>")

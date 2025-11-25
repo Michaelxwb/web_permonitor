@@ -16,7 +16,7 @@ Then visit:
 import logging
 import time
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 # Configure logging to see monitor output
 logging.basicConfig(
@@ -45,10 +45,10 @@ config = MonitorConfig(
             "format": "html",
             "smtp_host": "smtp.163.com",
             "smtp_port": 465,
-            "username": "example@163.com",
-            "password": "xxxxxxxx",
-            "sender": "example@163.com",
-            "recipients": ["example@163.com"],
+            "username": "ambition_xu@163.com",
+            "password": "xwbnszbd1994",
+            "sender": "ambition_xu@163.com",
+            "recipients": ["ambition_xu@163.com"],
             "use_ssl": True,
             "use_tls": False,
             "subject_prefix": "[性能告警]"
@@ -111,12 +111,61 @@ def search():
         /api/search?q=hello&page=2  (triggers alert - different params)
         /api/search?q=hello&page=1  (deduped - same params)
     """
-    from flask import request
-
     q = request.args.get("q", "")
     page = request.args.get("page", 1)
     time.sleep(0.15)  # 150ms delay
     return jsonify({"query": q, "page": page, "results": []})
+
+
+@app.route("/api/submit", methods=["POST"])
+def submit_order():
+    """POST endpoint for order submission - tests request details in MD report.
+
+    Test with curl:
+        curl -X POST http://localhost:5000/api/submit \\
+             -H "Content-Type: application/json" \\
+             -d '{
+                   "order": "asc",
+                   "offset": 0,
+                   "limit": 10,
+                   "keyword": "38.38.250.207:39924",
+                   "target_company_id": [],
+                   "company_id": "28711512"
+                 }'
+
+    This will trigger a performance alert and generate a report with:
+    - Full URL
+    - Request path
+    - Request method (POST)
+    - Request parameters (JSON body)
+    """
+    # Get JSON data from request
+    data = request.get_json() or {}
+
+    # Simulate slow database operation
+    time.sleep(0.3)  # 300ms delay - exceeds threshold
+
+    # Process the order
+    order_type = data.get("order", "asc")
+    offset = data.get("offset", 0)
+    limit = data.get("limit", 10)
+    keyword = data.get("keyword", "")
+    company_id = data.get("company_id", "")
+
+    # Return response
+    return jsonify({
+        "status": "success",
+        "message": "Order submitted successfully",
+        "data": {
+            "order": order_type,
+            "offset": offset,
+            "limit": limit,
+            "keyword": keyword,
+            "company_id": company_id,
+            "total_records": 42,
+            "processing_time": "0.3s"
+        }
+    })
 
 
 @app.route("/health")
@@ -152,14 +201,19 @@ if __name__ == "__main__":
     print("Web Performance Monitor Demo")
     print("=" * 60)
     print("\nEndpoints:")
-    print("  GET /        - Fast endpoint (no alert)")
-    print("  GET /slow    - Slow endpoint (triggers alert)")
-    print("  GET /api/users - API endpoint (triggers alert)")
-    print("  GET /api/search?q=hello&page=1 - Test query param deduplication")
-    print("  GET /process - Uses @profile decorator")
-    print("  GET /health  - Health check (excluded)")
+    print("  GET  /              - Fast endpoint (no alert)")
+    print("  GET  /slow          - Slow endpoint (triggers alert)")
+    print("  GET  /api/users     - API endpoint (triggers alert)")
+    print("  GET  /api/search?q=hello&page=1 - Test query params")
+    print("  POST /api/submit    - Test POST with JSON body (triggers alert)")
+    print("  GET  /process       - Uses @profile decorator")
+    print("  GET  /health        - Health check (excluded)")
     print(f"\nReports will be saved to: {config.log_path}")
     print(f"Threshold: {config.threshold_seconds}s")
+    print("\nTest POST endpoint:")
+    print("  curl -X POST http://localhost:5000/api/submit \\")
+    print('       -H "Content-Type: application/json" \\')
+    print('       -d \'{"order":"asc","offset":0,"limit":10,"keyword":"test","company_id":"123"}\'')
     print("=" * 60 + "\n")
 
     app.run(debug=True, port=5000)
