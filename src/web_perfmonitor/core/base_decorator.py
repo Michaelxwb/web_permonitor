@@ -129,10 +129,8 @@ class BaseDecorator(ABC):
             profile: The PerformanceProfile instance.
         """
         try:
-            # Check deduplication
-            if self.alert_manager.should_alert(profile.endpoint):
-                self.alert_manager.record_alert(profile.endpoint)
-
+            # Atomically check deduplication and record (prevents race conditions)
+            if self.alert_manager.should_alert_and_record(profile.endpoint):
                 # Submit notification (local report is always saved)
                 self.executor.submit(profile)
                 logger.debug(f"Submitted notification for function {profile.endpoint}")

@@ -41,10 +41,8 @@ class AlertManager:
     Example:
         manager = AlertManager(config)
 
-        # Check if we should send an alert
-        if manager.should_alert("/api/users"):
-            # Record that we're sending an alert
-            manager.record_alert("/api/users")
+        # Atomically check if we should send an alert and record it
+        if manager.should_alert_and_record("/api/users"):
             send_notification(profile)
     """
 
@@ -78,59 +76,55 @@ class AlertManager:
         if auto_cleanup:
             self._start_cleanup_thread()
 
-    def should_alert(self, endpoint: str) -> bool:
-        """Check if an alert should be sent for the given endpoint.
+    def should_alert_and_record(self, endpoint: str) -> bool:
+        """Atomically check if an alert should be sent and record it if so.
 
-        Returns True if no alert has been sent for this endpoint within
-        the configured time window.
+        This method performs both the alert check and recording in a single
+        atomic operation, preventing race conditions in concurrent scenarios.
+        If the alert should be sent (not within the deduplication window),
+        it is immediately recorded before returning.
 
         Args:
             endpoint: The endpoint identifier (e.g., "/api/users").
 
         Returns:
-            True if an alert should be sent, False if suppressed.
-        """
-        with self._lock:
-            record = self._alerts.get(endpoint)
-            if record is None:
-                return True
+            True if alert should be sent (and has been recorded),
+            False if suppressed by deduplication (not recorded).
 
-            # Check if the record has expired
-            now = datetime.utcnow()
-            if now - record.last_alert_time > self.alert_window:
-                return True
-
-            return False
-
-    def record_alert(self, endpoint: str) -> None:
-        """Record that an alert was sent for the given endpoint.
-
-        Updates the alert record and persists to disk.
-        Enforces max_records limit by evicting oldest entries.
-
-        Args:
-            endpoint: The endpoint identifier.
+        Example:
+            if alert_manager.should_alert_and_record("/api/users"):
+                send_notification(profile)
         """
         with self._lock:
             now = datetime.utcnow()
             record = self._alerts.get(endpoint)
 
+            # Check if we should alert
+            should_send = False
             if record is None:
-                # Check if we need to evict old records before adding new one
-                self._evict_if_needed()
-                self._alerts[endpoint] = AlertRecord(
-                    endpoint=endpoint,
-                    last_alert_time=now,
-                    alert_count=1,
-                )
-            else:
-                self._alerts[endpoint] = AlertRecord(
-                    endpoint=endpoint,
-                    last_alert_time=now,
-                    alert_count=record.alert_count + 1,
-                )
+                should_send = True
+            elif now - record.last_alert_time > self.alert_window:
+                should_send = True
 
-            self._save_alerts()
+            # If we should send, record it immediately (atomic operation)
+            if should_send:
+                if record is None:
+                    # Check if we need to evict old records before adding new one
+                    self._evict_if_needed()
+                    self._alerts[endpoint] = AlertRecord(
+                        endpoint=endpoint,
+                        last_alert_time=now,
+                        alert_count=1,
+                    )
+                else:
+                    self._alerts[endpoint] = AlertRecord(
+                        endpoint=endpoint,
+                        last_alert_time=now,
+                        alert_count=record.alert_count + 1,
+                    )
+                self._save_alerts()
+
+            return should_send
 
     def get_alert_record(self, endpoint: str) -> Optional[AlertRecord]:
         """Get the alert record for an endpoint.

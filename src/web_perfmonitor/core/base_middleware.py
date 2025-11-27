@@ -103,11 +103,8 @@ class BaseMiddleware(ABC):
             profile: The completed performance profile.
         """
         try:
-            # Check if we should send an alert (deduplication)
-            if self.alert_manager.should_alert(profile.endpoint):
-                # Record the alert
-                self.alert_manager.record_alert(profile.endpoint)
-
+            # Atomically check if we should send an alert and record it (prevents race conditions)
+            if self.alert_manager.should_alert_and_record(profile.endpoint):
                 # Submit notification task (local report is always saved)
                 self.executor.submit(profile)
                 logger.debug(f"Submitted notification for {profile.endpoint}")

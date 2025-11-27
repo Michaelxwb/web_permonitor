@@ -52,15 +52,15 @@ config = MonitorConfig(
             "use_ssl": True,
             "use_tls": False,
             "subject_prefix": "[性能告警]"
-        }
+        },
         # Uncomment to enable Mattermost notifications:
-        # {
-        #     "type": "mattermost",
-        #     "format": "markdown",
-        #     "server_url": "https://mattermost.example.com",
-        #     "token": "your-token",
-        #     "channel_id": "your-channel-id",
-        # }
+        {
+            "type": "mattermost",
+            "format": "markdown",
+            "server_url": "https://community.mattermost.com",
+            "token": "7n654joieffg9kqzddmuqu1muw",
+            "channel_id": "sxh9qd4u83g6bqcwkymr8wmeoa",
+        }
     ],
 )
 
