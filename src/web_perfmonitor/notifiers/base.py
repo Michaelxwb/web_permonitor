@@ -88,6 +88,49 @@ class BaseNotifier(ABC):
         """
         pass
 
+    def _extract_request_data(self, profile: "PerformanceProfile") -> dict:
+        """Extract request data from profile metadata.
+
+        Args:
+            profile: The performance profile.
+
+        Returns:
+            Dictionary containing extracted request data with keys:
+                - url: Request URL
+                - path: Request path
+                - method: HTTP method
+                - query_params: Query parameters dict
+                - form_data: Form data dict
+                - json_body: JSON body dict or other type
+                - other_metadata: Other metadata excluding request params
+        """
+        if not profile.metadata:
+            return {}
+
+        url = profile.metadata.get("url", "")
+        path = profile.metadata.get("path", profile.endpoint)
+        method = profile.metadata.get("method", profile.method)
+
+        query_params = profile.metadata.get("query_params")
+        form_data = profile.metadata.get("form_data")
+        json_body = profile.metadata.get("json_body")
+
+        # Extract other metadata (exclude special keys)
+        exclude_keys = {"query_params", "form_data", "json_body", "query_string", "url", "path", "method"}
+        other_metadata = {
+            k: v for k, v in profile.metadata.items() if k not in exclude_keys
+        }
+
+        return {
+            "url": url,
+            "path": path,
+            "method": method,
+            "query_params": query_params,
+            "form_data": form_data,
+            "json_body": json_body,
+            "other_metadata": other_metadata,
+        }
+
     def format_message(
         self,
         profile: "PerformanceProfile",
@@ -129,47 +172,31 @@ class BaseNotifier(ABC):
             "",
         ]
 
-        if profile.metadata:
-            # Add Request Details section first
-            url = profile.metadata.get("url", "")
-            path = profile.metadata.get("path", profile.endpoint)
-            method = profile.metadata.get("method", profile.method)
+        # Extract request data
+        request_data = self._extract_request_data(profile)
 
-            # Collect all request parameters
-            query_params = profile.metadata.get("query_params")
-            form_data = profile.metadata.get("form_data")
-            json_body = profile.metadata.get("json_body")
+        if request_data:
+            url = request_data["url"]
+            path = request_data["path"]
+            method = request_data["method"]
+            query_params = request_data["query_params"]
+            form_data = request_data["form_data"]
+            json_body = request_data["json_body"]
+            other_metadata = request_data["other_metadata"]
 
-            # Build request params dict
-            request_params = {}
-            if query_params:
-                request_params.update(query_params)
-            if form_data:
-                request_params.update(form_data)
-            if json_body and isinstance(json_body, dict):
-                request_params.update(json_body)
-            elif json_body:
-                request_params = json_body
-
-            # Add Request Details section
+            # Request Details section
             lines.append("### 请求详情")
             lines.append("")
             if url:
                 lines.append(f"**URL**: {url}")
             lines.append(f"**路径**: {path}")
             lines.append(f"**请求方法**: {method}")
-            if request_params:
-                lines.append(f"**请求参数**: {json.dumps(request_params, ensure_ascii=False)}")
             lines.append("")
 
-            # Extract request parameters for special formatting
-            query_params = profile.metadata.get("query_params")
-            form_data = profile.metadata.get("form_data")
-            json_body = profile.metadata.get("json_body")
-
-            # Request Parameters section
+            # Request Parameters section (detailed)
             if query_params or form_data or json_body:
                 lines.append("### 请求参数")
+                lines.append("")
 
                 if query_params:
                     lines.append("**URL 查询参数:**")
@@ -192,24 +219,16 @@ class BaseNotifier(ABC):
                     lines.append("```")
                     lines.append("")
 
-            # Other metadata (exclude special keys)
-            exclude_keys = {"query_params", "form_data", "json_body", "query_string"}
-            other_metadata = {
-                k: v for k, v in profile.metadata.items() if k not in exclude_keys
-            }
-
-            # Translate metadata keys to Chinese
-            key_translations = {
-                "url": "请求URL",
-                "path": "请求路径",
-                "method": "请求方法",
-                "remote_addr": "客户端IP",
-                "user_agent": "用户代理",
-                "content_length": "内容长度",
-            }
-
+            # Other metadata section
             if other_metadata:
-                lines.append("### 请求信息")
+                # Translate metadata keys to Chinese
+                key_translations = {
+                    "remote_addr": "客户端IP",
+                    "user_agent": "用户代理",
+                    "content_length": "内容长度",
+                }
+
+                lines.append("### 其他信息")
                 for key, value in other_metadata.items():
                     display_key = key_translations.get(key, key)
                     lines.append(f"- **{display_key}**: {value}")
@@ -329,75 +348,57 @@ class BaseNotifier(ABC):
         import html
         import json
 
+        # Extract request data
+        request_data = self._extract_request_data(profile)
+
         # Build request details section
         details_html = ""
-        if profile.metadata:
-            url = profile.metadata.get("url", "")
-            path = profile.metadata.get("path", profile.endpoint)
-            method = profile.metadata.get("method", profile.method)
-
-            # Collect all request parameters
-            query_params = profile.metadata.get("query_params")
-            form_data = profile.metadata.get("form_data")
-            json_body = profile.metadata.get("json_body")
-
-            # Build request params dict
-            request_params = {}
-            if query_params:
-                request_params.update(query_params)
-            if form_data:
-                request_params.update(form_data)
-            if json_body and isinstance(json_body, dict):
-                request_params.update(json_body)
-            elif json_body:
-                request_params = json_body
+        if request_data:
+            url = request_data["url"]
+            path = request_data["path"]
+            method = request_data["method"]
 
             details_html = "<h3>请求详情</h3><ul>"
             if url:
                 details_html += f"<li><strong>URL:</strong> {html.escape(url)}</li>"
             details_html += f"<li><strong>路径:</strong> {html.escape(path)}</li>"
             details_html += f"<li><strong>请求方法:</strong> {html.escape(method)}</li>"
-            if request_params:
-                details_html += f"<li><strong>请求参数:</strong> {html.escape(json.dumps(request_params, ensure_ascii=False))}</li>"
             details_html += "</ul>"
 
         # Build request params section
         params_html = ""
-        if profile.metadata:
-            query_params = profile.metadata.get("query_params")
-            form_data = profile.metadata.get("form_data")
-            json_body = profile.metadata.get("json_body")
+        if request_data:
+            query_params = request_data["query_params"]
+            form_data = request_data["form_data"]
+            json_body = request_data["json_body"]
 
             if query_params or form_data or json_body:
-                params_html = "<h3>Request Parameters</h3>"
+                params_html = "<h3>请求参数</h3>"
 
                 if query_params:
-                    params_html += f"""
-                    <p><strong>Query Parameters:</strong></p>
-                    <pre style="background:#f5f5f5;padding:10px;border-radius:4px;">{html.escape(json.dumps(query_params, indent=2, ensure_ascii=False))}</pre>
-                    """
+                    params_html += """
+                    <p><strong>URL 查询参数:</strong></p>
+                    <pre style="background:#f5f5f5;padding:10px;border-radius:4px;">{}</pre>
+                    """.format(html.escape(json.dumps(query_params, indent=2, ensure_ascii=False)))
 
                 if form_data:
-                    params_html += f"""
-                    <p><strong>Form Data:</strong></p>
-                    <pre style="background:#f5f5f5;padding:10px;border-radius:4px;">{html.escape(json.dumps(form_data, indent=2, ensure_ascii=False))}</pre>
-                    """
+                    params_html += """
+                    <p><strong>表单数据:</strong></p>
+                    <pre style="background:#f5f5f5;padding:10px;border-radius:4px;">{}</pre>
+                    """.format(html.escape(json.dumps(form_data, indent=2, ensure_ascii=False)))
 
                 if json_body:
-                    params_html += f"""
-                    <p><strong>JSON Body:</strong></p>
-                    <pre style="background:#f5f5f5;padding:10px;border-radius:4px;">{html.escape(json.dumps(json_body, indent=2, ensure_ascii=False))}</pre>
-                    """
+                    params_html += """
+                    <p><strong>JSON 请求体:</strong></p>
+                    <pre style="background:#f5f5f5;padding:10px;border-radius:4px;">{}</pre>
+                    """.format(html.escape(json.dumps(json_body, indent=2, ensure_ascii=False)))
 
         # Build metadata section
         metadata_html = ""
-        if profile.metadata:
-            exclude_keys = {"query_params", "form_data", "json_body", "query_string"}
-            other_metadata = {
-                k: v for k, v in profile.metadata.items() if k not in exclude_keys
-            }
+        if request_data:
+            other_metadata = request_data["other_metadata"]
             if other_metadata:
-                metadata_html = "<h3>Request Information</h3><ul>"
+                metadata_html = "<h3>其他信息</h3><ul>"
                 for key, value in other_metadata.items():
                     metadata_html += f"<li><strong>{html.escape(str(key))}:</strong> {html.escape(str(value))}</li>"
                 metadata_html += "</ul>"
