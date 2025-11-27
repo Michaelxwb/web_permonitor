@@ -301,8 +301,6 @@ def profile(
                 profiler.start()
                 result = func(*args, **kwargs)
                 return result
-            except Exception:
-                raise
             finally:
                 try:
                     profiler.stop()
@@ -316,7 +314,7 @@ def profile(
                             f"Function {func_name} exceeded threshold: "
                             f"{duration:.3f}s > {effective_threshold}s"
                         )
-                except Exception as e:
+                except ProfilerError as e:
                     logger.error(f"Error in profiler: {e}", exc_info=True)
 
         return wrapper

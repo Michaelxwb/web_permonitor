@@ -11,6 +11,7 @@ from functools import wraps
 from typing import Any, Callable, Dict, TypeVar
 
 from ...core import BaseDecorator
+from ...exceptions import ProfilerError
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +81,6 @@ class FastAPIProfileDecorator(BaseDecorator):
                 profiler.start()
                 result = await func(*args, **kwargs)
                 return result
-            except Exception:
-                raise
             finally:
                 try:
                     profiler.stop()
@@ -95,7 +94,7 @@ class FastAPIProfileDecorator(BaseDecorator):
                             metadata=context,
                         )
                         self._process_profile(profile)
-                except Exception as e:
+                except ProfilerError as e:
                     logger.error(f"Error in profiler: {e}", exc_info=True)
 
         return wrapper
@@ -122,8 +121,6 @@ class FastAPIProfileDecorator(BaseDecorator):
                 profiler.start()
                 result = func(*args, **kwargs)
                 return result
-            except Exception:
-                raise
             finally:
                 try:
                     profiler.stop()
@@ -137,7 +134,7 @@ class FastAPIProfileDecorator(BaseDecorator):
                             metadata=context,
                         )
                         self._process_profile(profile)
-                except Exception as e:
+                except ProfilerError as e:
                     logger.error(f"Error in profiler: {e}", exc_info=True)
 
         return wrapper

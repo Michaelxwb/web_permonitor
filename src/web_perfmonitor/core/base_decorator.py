@@ -9,6 +9,8 @@ from abc import ABC, abstractmethod
 from functools import wraps
 from typing import Any, Callable, Dict, Optional, TYPE_CHECKING, TypeVar
 
+from ..exceptions import ProfilerError
+
 if TYPE_CHECKING:
     from ..config import MonitorConfig
 
@@ -99,9 +101,6 @@ class BaseDecorator(ABC):
                 profiler.start()
                 result = func(*args, **kwargs)
                 return result
-            except Exception:
-                # Re-raise after stopping profiler
-                raise
             finally:
                 try:
                     profiler.stop()
@@ -116,7 +115,7 @@ class BaseDecorator(ABC):
                             metadata=context,
                         )
                         self._process_profile(profile)
-                except Exception as e:
+                except ProfilerError as e:
                     # Never let profiling errors affect the function
                     logger.error(f"Error in profiler: {e}", exc_info=True)
 
