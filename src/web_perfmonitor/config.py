@@ -35,6 +35,12 @@ class MonitorConfig:
         notice_queue_size: Maximum size of the notification task queue. Default: 1000
         graceful_shutdown_seconds: Time to wait for pending notifications on
             shutdown. Default: 5.0
+        capture_request_headers: Whether to capture HTTP request headers in
+            performance reports. Default: True
+        included_headers: Optional list of specific headers to capture. If None,
+            captures standard headers (X-Forwarded-For, X-Real-IP, X-Request-ID,
+            X-Trace-ID, X-Correlation-ID, Referer, Content-Type, Accept,
+            Accept-Language, Origin, User-Agent). Default: None
     """
 
     threshold_seconds: float = 1.0
@@ -47,6 +53,8 @@ class MonitorConfig:
     notice_timeout_seconds: float = 30.0
     notice_queue_size: int = 1000
     graceful_shutdown_seconds: float = 5.0
+    capture_request_headers: bool = True
+    included_headers: Optional[List[str]] = None
 
     def __post_init__(self) -> None:
         """Validate configuration after initialization."""
@@ -104,6 +112,8 @@ class MonitorConfig:
             PERF_NOTICE_TIMEOUT -> notice_timeout_seconds
             PERF_NOTICE_QUEUE_SIZE -> notice_queue_size
             PERF_SHUTDOWN_TIMEOUT -> graceful_shutdown_seconds
+            PERF_CAPTURE_REQUEST_HEADERS -> capture_request_headers (true/false)
+            PERF_INCLUDED_HEADERS -> included_headers (comma-separated)
 
         Returns:
             MonitorConfig instance with values from environment.
@@ -170,6 +180,21 @@ class MonitorConfig:
                     f"Invalid PERF_SHUTDOWN_TIMEOUT value: {shutdown_timeout}"
                 ) from e
 
+        if capture_headers := os.environ.get("PERF_CAPTURE_REQUEST_HEADERS"):
+            capture_headers_lower = capture_headers.lower()
+            if capture_headers_lower in ("true", "1", "yes"):
+                kwargs["capture_request_headers"] = True
+            elif capture_headers_lower in ("false", "0", "no"):
+                kwargs["capture_request_headers"] = False
+            else:
+                raise ConfigurationError(
+                    f"Invalid PERF_CAPTURE_REQUEST_HEADERS value: {capture_headers}. "
+                    "Must be true/false, 1/0, or yes/no"
+                )
+
+        if included_headers := os.environ.get("PERF_INCLUDED_HEADERS"):
+            kwargs["included_headers"] = [h.strip() for h in included_headers.split(",") if h.strip()]
+
         return cls(**kwargs)
 
     @classmethod
@@ -196,6 +221,8 @@ class MonitorConfig:
             "notice_timeout_seconds",
             "notice_queue_size",
             "graceful_shutdown_seconds",
+            "capture_request_headers",
+            "included_headers",
         }
 
         # Filter to only valid fields
@@ -215,7 +242,7 @@ class MonitorConfig:
         Returns:
             New MonitorConfig instance with merged values.
         """
-        current = {
+        current: Dict[str, Any] = {
             "threshold_seconds": self.threshold_seconds,
             "alert_window_days": self.alert_window_days,
             "max_performance_overhead": self.max_performance_overhead,
@@ -226,6 +253,8 @@ class MonitorConfig:
             "notice_timeout_seconds": self.notice_timeout_seconds,
             "notice_queue_size": self.notice_queue_size,
             "graceful_shutdown_seconds": self.graceful_shutdown_seconds,
+            "capture_request_headers": self.capture_request_headers,
+            "included_headers": self.included_headers.copy() if self.included_headers else None,
         }
         current.update(kwargs)
         return MonitorConfig(**current)

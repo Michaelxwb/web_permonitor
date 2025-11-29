@@ -114,9 +114,10 @@ class BaseNotifier(ABC):
         query_params = profile.metadata.get("query_params")
         form_data = profile.metadata.get("form_data")
         json_body = profile.metadata.get("json_body")
+        request_headers = profile.metadata.get("request_headers")
 
         # Extract other metadata (exclude special keys)
-        exclude_keys = {"query_params", "form_data", "json_body", "query_string", "url", "path", "method"}
+        exclude_keys = {"query_params", "form_data", "json_body", "query_string", "url", "path", "method", "request_headers"}
         other_metadata = {
             k: v for k, v in profile.metadata.items() if k not in exclude_keys
         }
@@ -128,6 +129,7 @@ class BaseNotifier(ABC):
             "query_params": query_params,
             "form_data": form_data,
             "json_body": json_body,
+            "request_headers": request_headers,
             "other_metadata": other_metadata,
         }
 
@@ -182,6 +184,7 @@ class BaseNotifier(ABC):
             query_params = request_data["query_params"]
             form_data = request_data["form_data"]
             json_body = request_data["json_body"]
+            request_headers = request_data["request_headers"]
             other_metadata = request_data["other_metadata"]
 
             # Request Details section
@@ -192,6 +195,14 @@ class BaseNotifier(ABC):
             lines.append(f"**路径**: {path}")
             lines.append(f"**请求方法**: {method}")
             lines.append("")
+
+            # Request Headers section
+            if request_headers:
+                lines.append("### 请求头")
+                lines.append("")
+                for header_name, header_value in request_headers.items():
+                    lines.append(f"- **{header_name}**: {header_value}")
+                lines.append("")
 
             # Request Parameters section (detailed)
             if query_params or form_data or json_body:

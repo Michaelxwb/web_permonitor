@@ -284,6 +284,12 @@ class FlaskMiddleware(BaseMiddleware):
         except Exception:
             pass
 
+        # Add request headers if enabled
+        if self.config.capture_request_headers:
+            request_headers = self._collect_request_headers(request)
+            if request_headers:
+                metadata["request_headers"] = request_headers
+
         return metadata
 
     def _truncate_value(self, value: str, max_size: int = MAX_METADATA_VALUE_SIZE) -> str:
@@ -323,3 +329,39 @@ class FlaskMiddleware(BaseMiddleware):
             else:
                 result[key] = value
         return result
+
+    def _collect_request_headers(self, request: Any) -> Dict[str, str]:
+        """Collect HTTP request headers based on configuration.
+
+        Args:
+            request: Flask request object.
+
+        Returns:
+            Dictionary of header names to values.
+        """
+        # Default headers to collect if not configured
+        default_headers = [
+            "X-Forwarded-For",
+            "X-Real-IP",
+            "X-Request-ID",
+            "X-Trace-ID",
+            "X-Correlation-ID",
+            "Referer",
+            "Content-Type",
+            "Accept",
+            "Accept-Language",
+            "Origin",
+            "User-Agent",
+        ]
+
+        # Use configured headers or default
+        headers_to_collect = self.config.included_headers or default_headers
+
+        collected_headers: Dict[str, str] = {}
+        for header_name in headers_to_collect:
+            header_value = request.headers.get(header_name)
+            if header_value:
+                # Truncate header values to 500 characters
+                collected_headers[header_name] = self._truncate_value(header_value, max_size=500)
+
+        return collected_headers

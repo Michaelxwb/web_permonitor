@@ -10,6 +10,7 @@ A lightweight performance monitoring library for Python web frameworks based on 
 
 - **Zero-intrusion monitoring** - Add performance monitoring without modifying your application code
 - **Automatic profiling** - Captures detailed call stacks when response time exceeds threshold
+- **Request header collection** - Automatically collects tracing-related HTTP headers (X-Request-ID, X-Trace-ID, etc.)
 - **Alert deduplication** - Prevents alert fatigue with configurable time windows
 - **Multiple notification channels** - Local files, Mattermost, and extensible for custom channels
 - **URL filtering** - Whitelist/blacklist patterns to control what gets monitored
@@ -87,10 +88,22 @@ config = MonitorConfig(
     alert_window_days=7,        # 7-day deduplication window
     log_path="/var/log/myapp",  # Report save directory
     url_whitelist=["/api/*"],   # Only monitor /api/* endpoints
+
+    # Request header collection (enabled by default)
+    capture_request_headers=True,  # Collect request headers
+    included_headers=None,          # None=use default list, or customize like ["X-Custom-ID"]
 )
 
 PerformanceMiddleware(app, config=config)
 ```
+
+**Default collected headers:**
+- `X-Forwarded-For` / `X-Real-IP` - Real client IP
+- `X-Request-ID` / `X-Trace-ID` / `X-Correlation-ID` - Distributed tracing identifiers
+- `Referer` - Request source
+- `Content-Type` / `Accept` / `Accept-Language` - Content format
+- `Origin` - CORS origin
+- `User-Agent` - User agent string
 
 ### Environment Variables
 
@@ -98,6 +111,8 @@ PerformanceMiddleware(app, config=config)
 export PERF_THRESHOLD=0.5
 export PERF_ALERT_WINDOW=7
 export PERF_LOG_PATH=/var/log/myapp
+export PERF_CAPTURE_REQUEST_HEADERS=true
+export PERF_INCLUDED_HEADERS="X-Request-ID,X-Trace-ID,X-Custom-Header"
 export PERF_URL_WHITELIST="/api/*"
 ```
 
@@ -226,6 +241,8 @@ config = MonitorConfig(
 | notice_timeout_seconds | float | 30.0 | Notification timeout |
 | notice_queue_size | int | 1000 | Notification queue size |
 | graceful_shutdown_seconds | float | 5.0 | Graceful shutdown timeout |
+| capture_request_headers | bool | True | Whether to collect HTTP request headers |
+| included_headers | List[str] | None | Custom list of headers to collect |
 
 ## Extending
 

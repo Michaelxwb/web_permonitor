@@ -10,6 +10,7 @@
 
 - **零侵入式监控** - 无需修改应用代码即可添加性能监控
 - **自动性能分析** - 当响应时间超过阈值时自动捕获详细调用栈
+- **请求头收集** - 自动收集追踪相关的 HTTP 请求头（X-Request-ID、X-Trace-ID 等）
 - **告警去重** - 可配置时间窗口，避免告警轰炸
 - **多通知渠道** - 支持本地文件、Mattermost，可扩展自定义渠道
 - **URL 过滤** - 支持白名单/黑名单模式控制监控范围
@@ -87,10 +88,22 @@ config = MonitorConfig(
     alert_window_days=7,        # 7 天去重窗口
     log_path="/var/log/myapp",  # 报告保存目录
     url_whitelist=["/api/*"],   # 仅监控 /api/* 接口
+
+    # 请求头收集（默认启用）
+    capture_request_headers=True,  # 收集请求头信息
+    included_headers=None,          # None=使用默认列表，或自定义如 ["X-Custom-ID"]
 )
 
 PerformanceMiddleware(app, config=config)
 ```
+
+**默认收集的请求头：**
+- `X-Forwarded-For` / `X-Real-IP` - 真实客户端 IP
+- `X-Request-ID` / `X-Trace-ID` / `X-Correlation-ID` - 分布式追踪标识
+- `Referer` - 请求来源
+- `Content-Type` / `Accept` / `Accept-Language` - 内容格式
+- `Origin` - CORS 来源
+- `User-Agent` - 用户代理
 
 ### 环境变量配置
 
@@ -99,6 +112,8 @@ export PERF_THRESHOLD=0.5
 export PERF_ALERT_WINDOW=7
 export PERF_LOG_PATH=/var/log/myapp
 export PERF_URL_WHITELIST="/api/*"
+export PERF_CAPTURE_REQUEST_HEADERS=true
+export PERF_INCLUDED_HEADERS="X-Request-ID,X-Trace-ID,X-Custom-Header"
 ```
 
 ```python
@@ -226,6 +241,8 @@ config = MonitorConfig(
 | notice_timeout_seconds | float | 30.0 | 通知超时时间 |
 | notice_queue_size | int | 1000 | 通知队列大小 |
 | graceful_shutdown_seconds | float | 5.0 | 优雅关闭超时时间 |
+| capture_request_headers | bool | True | 是否收集 HTTP 请求头 |
+| included_headers | List[str] | None | 自定义要收集的请求头列表 |
 
 ## 扩展开发
 

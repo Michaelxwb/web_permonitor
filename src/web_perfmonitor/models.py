@@ -27,7 +27,16 @@ class PerformanceProfile:
         timestamp: When the profiling occurred.
         html_report: Pyinstrument HTML format report.
         text_report: Pyinstrument text format report.
-        metadata: Additional context information (request_id, user_agent, etc.).
+        metadata: Additional context information including:
+            - url: Full request URL
+            - path: Request path
+            - method: HTTP method
+            - remote_addr: Client IP address
+            - user_agent: User agent string
+            - query_params: URL query parameters dict
+            - form_data: Form data dict
+            - json_body: JSON request body
+            - request_headers: HTTP request headers dict (if enabled)
     """
 
     id: str
