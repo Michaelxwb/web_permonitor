@@ -7,6 +7,7 @@ the FrameworkRegistry.
 Supported Frameworks:
     - Flask: Full support for request profiling and decorators
     - FastAPI: Full support for async request profiling and decorators
+    - Sanic: Full support for async request profiling and decorators
 
 Example:
     # Importing this module registers all adapters
@@ -52,6 +53,19 @@ def _discover_fastapi() -> bool:
         return False
 
 
+def _discover_sanic() -> bool:
+    """Attempt to discover and register Sanic adapter."""
+    try:
+        from . import sanic  # noqa: F401
+
+        _discovered_frameworks.append("sanic")
+        logger.debug("Discovered Sanic framework adapter")
+        return True
+    except ImportError:
+        logger.debug("Sanic not available, skipping adapter registration")
+        return False
+
+
 def discover_frameworks() -> List[str]:
     """Discover and register all available framework adapters.
 
@@ -63,6 +77,7 @@ def discover_frameworks() -> List[str]:
     if not _discovered_frameworks:
         _discover_flask()
         _discover_fastapi()
+        _discover_sanic()
 
     return _discovered_frameworks.copy()
 

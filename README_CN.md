@@ -15,7 +15,7 @@
 - **多通知渠道** - 支持本地文件、Mattermost，可扩展自定义渠道
 - **URL 过滤** - 支持白名单/黑名单模式控制监控范围
 - **异步通知** - 非阻塞式通知发送
-- **多框架支持** - 支持 Flask 和 FastAPI（包括 async/await），可扩展至 Django 等
+- **多框架支持** - 支持 Flask、FastAPI 和 Sanic（包括 async/await），可扩展至 Django 等
 
 ## 安装
 
@@ -26,6 +26,11 @@ pip install web-perfmonitor
 如需 FastAPI 支持：
 ```bash
 pip install web-perfmonitor[fastapi]
+```
+
+如需 Sanic 支持：
+```bash
+pip install web-perfmonitor[sanic]
 ```
 
 如需 Mattermost 通知支持：
@@ -72,11 +77,30 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
 
+### Sanic（异步支持）
+
+```python
+from sanic import Sanic
+from sanic import json
+from web_perfmonitor import PerformanceMiddleware
+
+app = Sanic("MyApp")
+PerformanceMiddleware(app)  # 自动检测 Sanic
+
+@app.route("/api/users")
+async def get_users(request):
+    # 你的异步业务逻辑
+    return json({"users": [...]})
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000)
+```
+
 **效果说明：**
 - 所有接口自动被监控
 - 当响应时间超过 1 秒时生成性能报告
 - 报告保存至 `/tmp` 目录
-- 对于 FastAPI，异步函数的调用栈可被完整采集
+- 对于 FastAPI 和 Sanic，异步函数的调用栈可被完整采集
 
 ### 自定义配置
 

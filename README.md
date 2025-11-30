@@ -15,7 +15,7 @@ A lightweight performance monitoring library for Python web frameworks based on 
 - **Multiple notification channels** - Local files, Mattermost, and extensible for custom channels
 - **URL filtering** - Whitelist/blacklist patterns to control what gets monitored
 - **Async notifications** - Non-blocking notification delivery
-- **Multi-framework support** - Supports Flask and FastAPI with async/await, extensible for Django, etc.
+- **Multi-framework support** - Supports Flask, FastAPI, and Sanic with async/await, extensible for Django, etc.
 
 ## Installation
 
@@ -26,6 +26,11 @@ pip install web-perfmonitor
 For FastAPI support:
 ```bash
 pip install web-perfmonitor[fastapi]
+```
+
+For Sanic support:
+```bash
+pip install web-perfmonitor[sanic]
 ```
 
 For Mattermost notification support:
@@ -72,11 +77,30 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
 
+### Sanic (Async Support)
+
+```python
+from sanic import Sanic
+from sanic import json
+from web_perfmonitor import PerformanceMiddleware
+
+app = Sanic("MyApp")
+PerformanceMiddleware(app)  # Auto-detects Sanic
+
+@app.route("/api/users")
+async def get_users(request):
+    # Your async business logic
+    return json({"users": [...]})
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000)
+```
+
 **What happens:**
 - All endpoints are automatically monitored
 - Performance reports are generated when response time exceeds 1 second
 - Reports are saved to `/tmp` directory
-- For FastAPI, async functions are profiled correctly with full call stack
+- For FastAPI and Sanic, async functions are profiled correctly with full call stack
 
 ### Custom Configuration
 
