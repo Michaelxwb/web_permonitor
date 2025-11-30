@@ -48,22 +48,22 @@ config = MonitorConfig(
             "format": "html",
             "smtp_host": "smtp.163.com",
             "smtp_port": 465,
-            "username": "ambition_xu@163.com",
-            "password": "xwbnszbd1994",
-            "sender": "ambition_xu@163.com",
-            "recipients": ["ambition_xu@163.com"],
+            "username": "xxxxxxx@163.com",
+            "password": "xxxxxxx",
+            "sender": "xxxxxxx@163.com",
+            "recipients": ["xxxxxxx@163.com"],
             "use_ssl": True,
             "use_tls": False,
             "subject_prefix": "[性能告警]"
-        },
-        # Uncomment to enable Mattermost notifications:
-        {
-            "type": "mattermost",
-            "format": "markdown",
-            "server_url": "https://community.mattermost.com",
-            "token": "7n654joieffg9kqzddmuqu1muw",
-            "channel_id": "sxh9qd4u83g6bqcwkymr8wmeoa",
         }
+        # Uncomment to enable Mattermost notifications:
+        # {
+        #     "type": "mattermost",
+        #     "format": "markdown",
+        #     "server_url": "https://mattermost.example.com",
+        #     "token": "your-token",
+        #     "channel_id": "your-channel-id",
+        # }
     ],
 )
 
