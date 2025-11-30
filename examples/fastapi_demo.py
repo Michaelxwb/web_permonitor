@@ -36,6 +36,9 @@ config = MonitorConfig(
     alert_window_days=10,  # Deduplicate alerts for 10 days
     log_path="/tmp/fastapi_perf_reports",  # Where to save reports
     url_blacklist=["/health", "/docs", "/redoc", "/openapi.json"],  # Skip monitoring
+    # Request headers collection (enabled by default)
+    # capture_request_headers=True,  # Captures tracing headers (X-Request-ID, X-Trace-ID, etc.)
+    # included_headers=["X-Custom-ID"],  # Optional: customize which headers to collect
     notice_list=[
         # 163 Email notification
         {

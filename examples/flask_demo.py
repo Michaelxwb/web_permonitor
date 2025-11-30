@@ -36,6 +36,9 @@ config = MonitorConfig(
     alert_window_days=1,  # Short window for demo
     log_path="/tmp/perf-demo",  # Reports are always saved here (mandatory)
     url_blacklist=["/health", "/favicon.ico"],  # Exclude these URLs
+    # Request headers collection (enabled by default)
+    # capture_request_headers=True,  # Captures tracing headers (X-Request-ID, X-Trace-ID, etc.)
+    # included_headers=["X-Custom-ID"],  # Optional: customize which headers to collect
     # notice_list is for EXTERNAL notifiers only (Mattermost, Email, Slack, etc.)
     # Local report saving is automatic and mandatory
     notice_list=[
@@ -45,22 +48,22 @@ config = MonitorConfig(
             "format": "html",
             "smtp_host": "smtp.163.com",
             "smtp_port": 465,
-            "username": "xxxxxxx@163.com",
-            "password": "xxxxxxx",
-            "sender": "xxxxxxx@163.com",
-            "recipients": ["xxxxxxx@163.com"],
+            "username": "ambition_xu@163.com",
+            "password": "xwbnszbd1994",
+            "sender": "ambition_xu@163.com",
+            "recipients": ["ambition_xu@163.com"],
             "use_ssl": True,
             "use_tls": False,
             "subject_prefix": "[性能告警]"
-        }
+        },
         # Uncomment to enable Mattermost notifications:
-        # {
-        #     "type": "mattermost",
-        #     "format": "markdown",
-        #     "server_url": "https://mattermost.example.com",
-        #     "token": "your-token",
-        #     "channel_id": "your-channel-id",
-        # }
+        {
+            "type": "mattermost",
+            "format": "markdown",
+            "server_url": "https://community.mattermost.com",
+            "token": "7n654joieffg9kqzddmuqu1muw",
+            "channel_id": "sxh9qd4u83g6bqcwkymr8wmeoa",
+        }
     ],
 )
 
@@ -124,6 +127,8 @@ def submit_order():
     Test with curl:
         curl -X POST http://localhost:5000/api/submit \\
              -H "Content-Type: application/json" \\
+             -H "X-Request-ID: test-123" \\
+             -H "X-Trace-ID: trace-456" \\
              -d '{
                    "order": "asc",
                    "offset": 0,
@@ -137,13 +142,14 @@ def submit_order():
     - Full URL
     - Request path
     - Request method (POST)
+    - Request headers (Content-Type, X-Request-ID, X-Trace-ID, etc.)
     - Request parameters (JSON body)
     """
     # Get JSON data from request
     data = request.get_json() or {}
 
     # Simulate slow database operation
-    time.sleep(0.3)  # 300ms delay - exceeds threshold
+    time.sleep(1)  # 300ms delay - exceeds threshold
 
     # Process the order
     order_type = data.get("order", "asc")
